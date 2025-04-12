@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title> ElGatitoPizzeria </title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script type="importmap">
+        {
+          "imports": {
+            "three": "https://threejs.org/build/three.module.js",
+            "three/addons/": "https://threejs.org/examples/jsm/"
+          }
+        }
+      </script>
+
+    <script type="module">
+
+        import * as THREE from "three";
+
+        import { ConvexGeometry } from "three/addons/geometries/ConvexGeometry.js";
+        import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+        import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+        // To store the scene graph, and elements usefull to rendering the scene
+        const sceneElements = {
+            sceneGraph: null,
+            camera: null,
+            control: null,  // NEW
+            renderer: null,
+        };
+
+        // HELPER FUNCTIONS
+
+        const helper = {
+
+            initEmptyScene: function (sceneElements) {
+
+                // ************************** //
+                // Create the 3D scene
+                // ************************** //
+                sceneElements.sceneGraph = new THREE.Scene();
+
+                // ************************** //
+                // Add camera
+                // ************************** //
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 500);
+                sceneElements.camera = camera;
+
+                // ************************** //
+                // Illumination
+                // ************************** //
+
+                // ************************** //
+                // Add ambient light
+                // ************************** //
+                const ambientLight = new THREE.AmbientLight('rgb(255, 255, 255)', 0.2);
+                sceneElements.sceneGraph.add(ambientLight);
+
+                // ***************************** //
+                // Add spotlight (with shadows)
+                // ***************************** //
+                const light_1 = new THREE.SpotLight('rgb(255, 255, 255)', 25);
+                light_1.decay = 1;
+                light_1.position.set(-5, 8, 0);
+                sceneElements.sceneGraph.add(light_1);
+
+                // Setup shadow properties for the spotlight
+                light_1.castShadow = true;
+                light_1.shadow.mapSize.width = 2048;
+                light_1.shadow.mapSize.height = 2048;
+
+                // Give a name to the spot light
+                light_1.name = "light 1";
+
+                // *********************************** //
+                // Create renderer (with shadow map)
+                // *********************************** //
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                sceneElements.renderer = renderer;
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setClearColor('rgb(255, 255, 150)', 1.0);
+                renderer.setSize(width, height);
+
+                // Setup shadowMap property
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+                // **************************************** //
+                // Add the rendered image in the HTML DOM
+                // **************************************** //
+                const htmlElement = document.querySelector("#ElGatitoPizzeria");
+                htmlElement.appendChild(renderer.domElement);
+
+                // ************************** //
+                // NEW --- Control for the camera
+                // ************************** //
+                sceneElements.control = new OrbitControls(camera, renderer.domElement);
+                sceneElements.control.screenSpacePanning = true;
+
+            },
+
+            render: function (sceneElements) {
+                sceneElements.renderer.render(sceneElements.sceneGraph, sceneElements.camera);
+            },
+        };
+
+        // FUCNTIONS FOR BUILDING THE SCENE
+
+        const scene = {
+
+            // Create and insert in the scene graph the models of the 3D scene
+
+            load3DObjects: function (sceneGraph) {
+
+                // Create a ground plane
+                const planeGeometry = new THREE.PlaneGeometry(6, 10);
+                const planeMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(200, 200, 200)', side: THREE.DoubleSide });
+                const planeObject = new THREE.Mesh(planeGeometry, planeMaterial);
+                sceneGraph.add(planeObject);
+
+                // Change orientation of the plane using rotation
+                planeObject.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+                // Set shadow property
+                planeObject.receiveShadow = true;
+
+                // Create a kitten
+                // Load the Kitten.glb model
+                const loader = new GLTFLoader();
+                loader.load(
+                    'Kitten.glb',
+                    function (gltf) {
+                        const kitten = gltf.scene;
+
+                        // Set position
+                        kitten.position.set(0, 0, 0);
+
+                        // Set scale
+                        kitten.scale.set(0.1,0.1,0.1);
+
+                        // Enable shadows for the model
+                        kitten.traverse(function (node) {
+                            if (node.isMesh) {
+                                node.castShadow = true;
+                                node.receiveShadow = true;
+                            }
+                        });
+
+                        // Add the model to the scene
+                        sceneGraph.add(kitten);
+
+                        // Name the model for later reference
+                        kitten.name = "kitten";
+
+                        // Create a bounding box
+                        const kittenBB = new THREE.Box3().setFromObject(kitten);
+                        kitten.userData.boundingBox = kittenBB;
+                        //console.log("Kitten Bounding Box:", kittenBB);
+                    },
+                    undefined,
+                    function (error) {
+                        console.error('An error occurred while loading the model:', error);
+                    }
+                );
+
+                // ************************** //
+                // Create a cylinder
+                // ************************** //
+                const cylinderGeometry = new THREE.CylinderGeometry(0.2, 0.2, 1.5, 25, 1);
+                const cylinderMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(200,255,150)' });
+                const cylinderObject = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+                sceneGraph.add(cylinderObject);
+
+                // Set position of the cylinder
+                // Move to the right and towards the camera
+                // The base of the cylinder is on the plane
+                cylinderObject.translateX(0).translateY(0.75).translateZ(-3);
+
+                // Set shadow property
+                cylinderObject.castShadow = true;
+
+                // ************************** //
+                // NEW - Create a CONVEX HULL
+                // ************************** //
+
+                const vertices = []
+
+                vertices.push(new THREE.Vector3(-1, 0, 1));
+                vertices.push(new THREE.Vector3(0, 0, 1));
+                vertices.push(new THREE.Vector3(0, 0, 2));
+                vertices.push(new THREE.Vector3(-1, 0, 2));
+                vertices.push(new THREE.Vector3(-0.5, 2.5, 1.5));
+
+                const meshMaterial = new THREE.MeshLambertMaterial({
+                    color: 0xffffff,
+                    opacity: 0.5,
+                    transparent: true
+                });
+
+                const meshGeometry = new ConvexGeometry(vertices);
+                const convexHull = new THREE.Mesh(meshGeometry, meshMaterial);
+                sceneGraph.add(convexHull);
+
+                convexHull.castShadow = true;
+            }
+        };
+
+        // ANIMATION
+
+        // Displacement values
+        var delta = 0.1;
+        var dispX = 0.1, dispZ = 0.1;
+
+        //To keep track of the keyboard - WASD
+        var keyD = false, keyA = false, keyS = false, keyW = false;
+        const cameraOffset = new THREE.Vector3(0, 5, 10);
+        
+        function computeFrame(time) {
+            // THE SPOT LIGHT
+            const light = sceneElements.sceneGraph.getObjectByName("light 1");
+
+            // Apply a small displacement
+            if (light.position.x >= 10) {
+                delta *= -1;
+            } else if (light.position.x <= -10) {
+                delta *= -1;
+            }
+            light.translateX(delta);
+
+            // CONTROLING THE kitten WITH THE KEYBOARD
+            const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
+
+            if (kitten) { // Check if the kitten object is loaded
+
+                if (keyD && kitten.position.x <= 2.5) {
+                    kitten.rotation.y = 0;                                  // face right
+                    kitten.translateX(dispX);
+                }
+                if (keyW && kitten.position.z >= -4.5) {
+                    kitten.rotation.y = Math.PI / 2                         // face forward
+                    kitten.translateX(dispZ);
+                }
+                if (keyA && kitten.position.x >= -2.5) {
+                    kitten.rotation.y = -Math.PI;                           // face left
+                    kitten.translateX(dispX);
+                }
+                if (keyS && kitten.position.z <= 4.5) {
+                    kitten.rotation.y = -Math.PI / 2;                       // face back
+                    kitten.translateX(dispZ);
+                }
+
+
+                // Camera follows the kitten
+                const kittenPosition = kitten.position.clone();
+                const cameraPosition = kittenPosition.add(cameraOffset);
+
+                sceneElements.camera.position.copy(cameraPosition);
+                sceneElements.camera.lookAt(kitten.position);
+            }
+
+            // Rendering
+            helper.render(sceneElements);
+
+            // NEW --- Update control of the camera
+            sceneElements.control.update();
+
+            // Animation
+            // Call for the next frame
+            requestAnimationFrame(computeFrame);
+        }
+
+        // Call functions:
+        //  1. Initialize the empty scene
+        //  2. Add elements within the scene
+        //  3. Animate
+
+        function init() {
+            helper.initEmptyScene(sceneElements);
+            scene.load3DObjects(sceneElements.sceneGraph);
+            requestAnimationFrame(computeFrame);
+        }
+
+        // HANDLING EVENTS
+
+        // Event Listeners
+
+        window.addEventListener('resize', resizeWindow);
+
+        document.addEventListener('keydown', onDocumentKeyDown, false);
+        document.addEventListener('keyup', onDocumentKeyUp, false);
+
+        // Update render image size and camera aspect when the window is resized
+        function resizeWindow(eventParam) {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            sceneElements.camera.aspect = width / height;
+            sceneElements.camera.updateProjectionMatrix();
+
+            sceneElements.renderer.setSize(width, height);
+
+            // Comment when doing animation
+            // computeFrame(sceneElements);
+        }
+
+        function onDocumentKeyDown(event) {
+            switch (event.keyCode) {
+                case 68: //d
+                    keyD = true;
+                    break;
+                case 83: //s
+                    keyS = true;
+                    break;
+                case 65: //a
+                    keyA = true;
+                    break;
+                case 87: //w
+                    keyW = true;
+                    break;
+            }
+        }
+
+        function onDocumentKeyUp(event) {
+            switch (event.keyCode) {
+                case 68: //d
+                    keyD = false;
+                    break;
+                case 83: //s
+                    keyS = false;
+                    break;
+                case 65: //a
+                    keyA = false;
+                    break;
+                case 87: //w
+                    keyW = false;
+                    break;
+            }
+        }
+
+        // STARTING
+
+        init();
+
+    </script>
+
+</head>
+
+<body>
+    <div id="ElGatitoPizzeria"> </div>
+</body>
+
+</html>

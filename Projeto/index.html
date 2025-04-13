@@ -41,32 +41,21 @@
 
             initEmptyScene: function (sceneElements) {
 
-                // ************************** //
                 // Create the 3D scene
-                // ************************** //
                 sceneElements.sceneGraph = new THREE.Scene();
 
-                // ************************** //
                 // Add camera
-                // ************************** //
                 const width = window.innerWidth;
                 const height = window.innerHeight;
                 const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 500);
                 sceneElements.camera = camera;
 
-                // ************************** //
                 // Illumination
-                // ************************** //
-
-                // ************************** //
                 // Add ambient light
-                // ************************** //
                 const ambientLight = new THREE.AmbientLight('rgb(255, 255, 255)', 0.2);
                 sceneElements.sceneGraph.add(ambientLight);
 
-                // ***************************** //
                 // Add spotlight (with shadows)
-                // ***************************** //
                 const light_1 = new THREE.SpotLight('rgb(255, 255, 255)', 25);
                 light_1.decay = 1;
                 light_1.position.set(-5, 8, 0);
@@ -80,9 +69,7 @@
                 // Give a name to the spot light
                 light_1.name = "light 1";
 
-                // *********************************** //
                 // Create renderer (with shadow map)
-                // *********************************** //
                 const renderer = new THREE.WebGLRenderer({ antialias: true });
                 sceneElements.renderer = renderer;
                 renderer.setPixelRatio(window.devicePixelRatio);
@@ -93,15 +80,11 @@
                 renderer.shadowMap.enabled = true;
                 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-                // **************************************** //
                 // Add the rendered image in the HTML DOM
-                // **************************************** //
                 const htmlElement = document.querySelector("#ElGatitoPizzeria");
                 htmlElement.appendChild(renderer.domElement);
 
-                // ************************** //
-                // NEW --- Control for the camera
-                // ************************** //
+                //Control for the camera
                 sceneElements.control = new OrbitControls(camera, renderer.domElement);
                 sceneElements.control.screenSpacePanning = true;
 
@@ -112,6 +95,47 @@
             },
         };
 
+        const cubes = [];
+
+        // Function to generate random color cubes
+        function generateRandomCubeColor(sceneGraph, index){
+            const randomColor = new THREE.Color(Math.random(), Math.random(), Math.random());
+            const cubeGeometry = new THREE.BoxGeometry(0.5,0.5,0.5);
+            const cubeMaterial = new THREE.MeshPhongMaterial({ color: randomColor });
+            const cube = new THREE.Mesh(cubeGeometry,cubeMaterial);
+            const spacing = 1;
+            cube.position.set(index-2, 1, -5.2);
+
+            cube.castShadow = true;
+            cube.receiveShadow = true;
+
+            sceneGraph.add(cube);
+
+            cubes.push(cube);
+        }
+
+        // Function to change the color of all cubes
+        function updateCubeColors() {
+            cubes.forEach((cube) => {
+                const newColor = new THREE.Color(Math.random(), Math.random(), Math.random());
+                cube.material.color = newColor; // Update the cube's color
+            });
+        }
+        
+        setInterval(updateCubeColors, 2000);
+        
+        // Function to generate customer
+        //
+        //
+        //
+        //
+        //
+        //
+        //
+        //
+        //
+
+
         // FUCNTIONS FOR BUILDING THE SCENE
 
         const scene = {
@@ -119,6 +143,10 @@
             // Create and insert in the scene graph the models of the 3D scene
 
             load3DObjects: function (sceneGraph) {
+
+                for (let i = 0; i < 5; i++) {
+                    generateRandomCubeColor(sceneGraph, i);
+                }
 
                 // Create a ground plane
                 const planeGeometry = new THREE.PlaneGeometry(6, 10);
@@ -161,7 +189,6 @@
 
                         // Create a bounding box
                         const kittenBB = new THREE.Box3().setFromObject(kitten);
-                        kitten.userData.boundingBox = kittenBB;
                         //console.log("Kitten Bounding Box:", kittenBB);
                     },
                     undefined,
@@ -170,25 +197,26 @@
                     }
                 );
 
-                // ************************** //
-                // Create a cylinder
-                // ************************** //
-                const cylinderGeometry = new THREE.CylinderGeometry(0.2, 0.2, 1.5, 25, 1);
-                const cylinderMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(200,255,150)' });
-                const cylinderObject = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
-                sceneGraph.add(cylinderObject);
+                // Create a table
+                const BoxGeometry = new THREE.BoxGeometry(6, 0.5, 1);
+                const BoxMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(200,255,150)' });
+                const table = new THREE.Mesh(BoxGeometry, BoxMaterial);
+                sceneGraph.add(table);
 
                 // Set position of the cylinder
                 // Move to the right and towards the camera
                 // The base of the cylinder is on the plane
-                cylinderObject.translateX(0).translateY(0.75).translateZ(-3);
+                table.translateX(0).translateY(0).translateZ(-5.2);
 
                 // Set shadow property
-                cylinderObject.castShadow = true;
+                table.castShadow = true;
+                
+                // add another table
+                const table2 = new THREE.Mesh(BoxGeometry,BoxMaterial);
+                sceneGraph.add(table2);
+                table2.translateX(0).translateY(0).translateZ(5.3);
 
-                // ************************** //
                 // NEW - Create a CONVEX HULL
-                // ************************** //
 
                 const vertices = []
 
@@ -213,47 +241,35 @@
         };
 
         // ANIMATION
-
-        // Displacement values
-        var delta = 0.1;
-        var dispX = 0.1, dispZ = 0.1;
-
         //To keep track of the keyboard - WASD
         var keyD = false, keyA = false, keyS = false, keyW = false;
-        const cameraOffset = new THREE.Vector3(0, 5, 10);
-        
+        const cameraOffset = new THREE.Vector3(0, 10, 10);
+
         function computeFrame(time) {
-            // THE SPOT LIGHT
-            const light = sceneElements.sceneGraph.getObjectByName("light 1");
-
-            // Apply a small displacement
-            if (light.position.x >= 10) {
-                delta *= -1;
-            } else if (light.position.x <= -10) {
-                delta *= -1;
-            }
-            light.translateX(delta);
-
             // CONTROLING THE kitten WITH THE KEYBOARD
             const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
 
             if (kitten) { // Check if the kitten object is loaded
-
-                if (keyD && kitten.position.x <= 2.5) {
-                    kitten.rotation.y = 0;                                  // face right
-                    kitten.translateX(dispX);
+                
+                if (keyD){
+                    kitten.rotation.y = 0;  // face right
+                    if(kitten.position.x <= 2.5)
+                            kitten.translateX(0.1);
                 }
-                if (keyW && kitten.position.z >= -4.5) {
-                    kitten.rotation.y = Math.PI / 2                         // face forward
-                    kitten.translateX(dispZ);
+                if (keyW) {
+                    kitten.rotation.y = Math.PI / 2; // face forward
+                    if(kitten.position.z >= -4.5)
+                        kitten.translateX(0.1);
                 }
-                if (keyA && kitten.position.x >= -2.5) {
-                    kitten.rotation.y = -Math.PI;                           // face left
-                    kitten.translateX(dispX);
+                if (keyA) {
+                    kitten.rotation.y = -Math.PI;   // face left
+                    if(kitten.position.x >= -2.5)
+                        kitten.translateX(0.1);
                 }
-                if (keyS && kitten.position.z <= 4.5) {
-                    kitten.rotation.y = -Math.PI / 2;                       // face back
-                    kitten.translateX(dispZ);
+                if (keyS) {
+                    kitten.rotation.y = -Math.PI / 2;   // face back
+                    if(kitten.position.z <= 4.5)
+                        kitten.translateX(0.1);
                 }
 
 

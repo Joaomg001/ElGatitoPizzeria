@@ -97,14 +97,14 @@
 
         const cubes = [];
 
-        // Function to generate random color cubes
+        // Function to generate random color cubes (foods)
         function generateRandomCubeColor(sceneGraph, index){
             const randomColor = new THREE.Color(Math.random(), Math.random(), Math.random());
             const cubeGeometry = new THREE.BoxGeometry(0.5,0.5,0.5);
             const cubeMaterial = new THREE.MeshPhongMaterial({ color: randomColor });
             const cube = new THREE.Mesh(cubeGeometry,cubeMaterial);
             const spacing = 1;
-            cube.position.set(index-2, 1, -5.2);
+            cube.position.set(index-2, 0.5, -5.2);
 
             cube.castShadow = true;
             cube.receiveShadow = true;
@@ -124,16 +124,46 @@
         
         setInterval(updateCubeColors, 2000);
         
+        const costumers = [];
+
         // Function to generate customer
-        //
-        //
-        //
-        //
-        //
-        //
-        //
-        //
-        //
+        function generateRandomCustomer(sceneGraph,index){
+            const colors = ["#a88532", "#a85532", "#000000", "#ffffff", "#253745"];
+            const loader = new GLTFLoader();
+            loader.load(
+                'Kitten.glb',
+                function (gltf) {
+                    const costumer = gltf.scene;
+
+                    costumer.position.set(index-2,0.5,-5.8);
+                    costumer.scale.set(0.1,0.1,0.1);
+                    costumer.rotation.y = -Math.PI/2;
+
+                    // pick random color from array colors
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+                    costumer.traverse(function (node) {
+                    if (node.isMesh) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+
+                        // Assign a random color to the kitten
+                        node.material.color.set(randomColor);
+                    }
+                });
+
+                // Add the kitten to the scene
+                sceneGraph.add(costumer);
+
+                // Store the kitten in the array for later updates
+                costumers.push(costumer);
+            },
+            undefined,
+            function (error) {
+                console.error('An error occurred while loading the kitten model:', error);
+            }
+            )
+        }
 
 
         // FUCNTIONS FOR BUILDING THE SCENE
@@ -143,10 +173,25 @@
             // Create and insert in the scene graph the models of the 3D scene
 
             load3DObjects: function (sceneGraph) {
-
+                
+                // generate cubes of food
                 for (let i = 0; i < 5; i++) {
                     generateRandomCubeColor(sceneGraph, i);
+                    generateRandomCustomer(sceneGraph,i);
                 }
+
+                // Create a cube to hold
+                const TestGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                const TestMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(0,255,255)' });
+                const Test = new THREE.Mesh(TestGeometry, TestMaterial);
+                Test.position.set(1, 0.5, 3);
+                Test.name = "testCube"; // Name the test cube for reference
+                sceneGraph.add(Test);
+
+                // Add bounding box for the test cube
+                testCubeBB = new THREE.Box3().setFromObject(Test);
+                testCubeHelper = new THREE.Box3Helper(testCubeBB, 0xff0000); // Red bounding box
+                sceneGraph.add(testCubeHelper);
 
                 // Create a ground plane
                 const planeGeometry = new THREE.PlaneGeometry(6, 10);
@@ -160,7 +205,6 @@
                 planeObject.receiveShadow = true;
 
                 // Create a kitten
-                // Load the Kitten.glb model
                 const loader = new GLTFLoader();
                 loader.load(
                     'Kitten.glb',
@@ -171,7 +215,7 @@
                         kitten.position.set(0, 0, 0);
 
                         // Set scale
-                        kitten.scale.set(0.1,0.1,0.1);
+                        kitten.scale.set(0.1, 0.1, 0.1);
 
                         // Enable shadows for the model
                         kitten.traverse(function (node) {
@@ -187,9 +231,10 @@
                         // Name the model for later reference
                         kitten.name = "kitten";
 
-                        // Create a bounding box
-                        const kittenBB = new THREE.Box3().setFromObject(kitten);
-                        //console.log("Kitten Bounding Box:", kittenBB);
+                        // Create a bounding box for the kitten
+                        kittenBB = new THREE.Box3().setFromObject(kitten);
+                        kittenHelper = new THREE.Box3Helper(kittenBB, 0x00ff00); // Green bounding box
+                        sceneGraph.add(kittenHelper);
                     },
                     undefined,
                     function (error) {
@@ -242,38 +287,69 @@
 
         // ANIMATION
         //To keep track of the keyboard - WASD
-        var keyD = false, keyA = false, keyS = false, keyW = false;
+        var kittenSpeed = 0.05;
+        var keyD = false, keyA = false, keyS = false, keyW = false, keySpace = false;
         const cameraOffset = new THREE.Vector3(0, 10, 10);
+        // bounding boxes
+        let testCubeBB, testCubeHelper;
+        let kittenBB, kittenHelper;
 
         function computeFrame(time) {
             // CONTROLING THE kitten WITH THE KEYBOARD
             const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
+            const testCube = sceneElements.sceneGraph.getObjectByName("testCube");
 
             if (kitten) { // Check if the kitten object is loaded
                 
                 if (keyD){
                     kitten.rotation.y = 0;  // face right
                     if(kitten.position.x <= 2.5)
-                            kitten.translateX(0.1);
+                            kitten.translateX(kittenSpeed);
                 }
                 if (keyW) {
                     kitten.rotation.y = Math.PI / 2; // face forward
                     if(kitten.position.z >= -4.5)
-                        kitten.translateX(0.1);
+                        kitten.translateX(kittenSpeed);
                 }
                 if (keyA) {
                     kitten.rotation.y = -Math.PI;   // face left
                     if(kitten.position.x >= -2.5)
-                        kitten.translateX(0.1);
+                        kitten.translateX(kittenSpeed);
                 }
                 if (keyS) {
                     kitten.rotation.y = -Math.PI / 2;   // face back
                     if(kitten.position.z <= 4.5)
-                        kitten.translateX(0.1);
+                        kitten.translateX(kittenSpeed);
                 }
 
+                // Update kitten bounding box
+                kittenBB.setFromObject(kitten);
+                kittenBB.expandByScalar(0.2);
+                kittenHelper.updateMatrixWorld(true);
+            }
 
-                // Camera follows the kitten
+            // Update test cube bounding box
+            if (testCube) {
+                // Update test cube bounding box
+                testCubeBB.setFromObject(testCube);
+                testCubeBB.expandByScalar(0.2);
+                testCubeHelper.updateMatrixWorld(true);
+
+                // Check for intersection
+                if (kitten && kittenBB.intersectsBox(testCubeBB) && keySpace) {
+                    const forward = new THREE.Vector3(1, 0.5, 0);
+                    forward.applyQuaternion(kitten.quaternion); // Rotate forward vector by kitten's rotation
+                    forward.normalize();
+
+                    const offset = forward;
+                    testCube.position.copy(kitten.position.clone().add(offset));
+
+                }
+            }
+
+
+            // Camera follows the kitten
+            if (kitten) {
                 const kittenPosition = kitten.position.clone();
                 const cameraPosition = kittenPosition.add(cameraOffset);
 
@@ -339,6 +415,12 @@
                     break;
                 case 87: //w
                     keyW = true;
+                    break;
+                case 32: //space
+                    if(keySpace == false)
+                        keySpace = true;
+                    else
+                        keySpace = false;
                     break;
             }
         }

@@ -99,6 +99,7 @@
         const cubesFood = [];
         const customers = [];
         const CubeColors = ["#ff0000", "#ffffff", "#04ff00", "#04ff00", "#9500ff"];
+        const customerColors = ["#a88532", "#a85532", "#000000", "#ffffff", "#253745"];
         
         //generate random color cubes (foods)
         function generateRandomCubeColor(sceneGraph, index){
@@ -132,12 +133,23 @@
                 cube.material.color.set(newColor);
                 console.log(cube.id, newColor);
             });
+            //update customer model color
+            customers.forEach((customer) => {
+                const randomColor = customerColors[Math.floor(Math.random() * customerColors.length)];
+                customer.traverse(function (node) {
+                    if (node.isMesh) {
+                        node.material.color.set(randomColor);
+                    }
+                });
+            });
         }
+
+        setInterval(() => {
+            updateCustomerCubeColors();
+        }, 2000);
 
         // Function to generate customer
         function generateRandomCustomer(sceneGraph,index){
-            const customerColors = ["#a88532", "#a85532", "#000000", "#ffffff", "#253745"];
-
             const loader = new GLTFLoader();
             loader.load(
                 'Kitten.glb',
@@ -297,7 +309,7 @@
         };
 
         // ANIMATION
-        //To keep track of the keyboard - WASD
+        // variables
         var kittenSpeed = 0.05;
         var keyD = false, keyA = false, keyS = false, keyW = false, keySpace = false;
         const cameraOffset = new THREE.Vector3(0, 10, 10);
@@ -313,7 +325,7 @@
             const testCube = sceneElements.sceneGraph.getObjectByName("testCube");
             document.getElementById("score").textContent = score;
 
-            if (kitten) { // Check if the kitten object is loaded
+            if (kitten) {
                 
                 if (keyD){
                     kitten.rotation.y = 0;  // face right
@@ -365,10 +377,23 @@
                         console.log("testCube intersects with customerCube");
                         if (testCube.material.color.getHex() === customerCube.material.color.getHex()) {
                             console.log("right color");
-                            score++;
+                            score += 10;
+
+                            // Remove the customer cube
                             sceneElements.sceneGraph.remove(customerCube);
+
+                            // Respawn the test cube at its original position
+                            testCube.position.set(1, 0.5, 3);
+                            testCubeBB.setFromObject(testCube); // Update bounding box
+                            // change its color  to one of the food cubes
+                            const randomFoodColors = CubeColors[Math.floor(Math.random() * CubeColors.length)];
+                            testCube.material.color.set(randomFoodColors);
+
                             // Remove the customer cube from the array
                             const index = cubes.indexOf(customerCube);
+                            if (index > -1) {
+                                cubes.splice(index, 1);
+                            }
                         } else {
                             console.log("wrong color");
                         }

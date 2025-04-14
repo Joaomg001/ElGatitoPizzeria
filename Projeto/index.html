@@ -96,51 +96,50 @@
         };
 
         const cubes = [];
-
+        const cubesFood = [];
+        const CubeColors = ["#ff0000", "#ffffff", "#04ff00", "#04ff00", "#9500ff"];
+        
         // Function to generate random color cubes (foods)
         function generateRandomCubeColor(sceneGraph, index){
-            const randomColor = new THREE.Color(Math.random(), Math.random(), Math.random());
+            const randomFoodColors = CubeColors[Math.floor(Math.random() * CubeColors.length)];
             const cubeGeometry = new THREE.BoxGeometry(0.5,0.5,0.5);
-            const cubeMaterial = new THREE.MeshPhongMaterial({ color: randomColor });
+            const cubeMaterial = new THREE.MeshPhongMaterial({ color: randomFoodColors });
             const cube = new THREE.Mesh(cubeGeometry,cubeMaterial);
-            const spacing = 1;
-            cube.position.set(index-2, 0.5, -5.2);
+            cube.position.set(index*1.5-3, 0.5, 5.2);
 
             cube.castShadow = true;
             cube.receiveShadow = true;
 
             sceneGraph.add(cube);
 
-            cubes.push(cube);
+            cubesFood.push(cube);
         }
 
-        // Function to change the color of all cubes
+        // Function to change the color of food cubes
         function updateCubeColors() {
-            cubes.forEach((cube) => {
-                const newColor = new THREE.Color(Math.random(), Math.random(), Math.random());
-                cube.material.color = newColor; // Update the cube's color
+            cubesFood.forEach((cube) => {
+                const newColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
+                cube.material.color.set(newColor);
             });
         }
-        
-        setInterval(updateCubeColors, 2000);
-        
         const costumers = [];
 
         // Function to generate customer
         function generateRandomCustomer(sceneGraph,index){
-            const colors = ["#a88532", "#a85532", "#000000", "#ffffff", "#253745"];
+            const CostumerColors = ["#a88532", "#a85532", "#000000", "#ffffff", "#253745"];
+
             const loader = new GLTFLoader();
             loader.load(
                 'Kitten.glb',
                 function (gltf) {
                     const costumer = gltf.scene;
 
-                    costumer.position.set(index-2,0.5,-5.8);
+                    costumer.position.set(index*1.5-3,0.5,-5.8);
                     costumer.scale.set(0.1,0.1,0.1);
                     costumer.rotation.y = -Math.PI/2;
 
                     // pick random color from array colors
-                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                    const randomColor = CostumerColors[Math.floor(Math.random() * CostumerColors.length)];
 
                     costumer.traverse(function (node) {
                     if (node.isMesh) {
@@ -163,6 +162,18 @@
                 console.error('An error occurred while loading the kitten model:', error);
             }
             )
+            
+            const randomCubeColors = CubeColors[Math.floor(Math.random() * CubeColors.length)];
+            const cubeGeometry = new THREE.BoxGeometry(0.5,0.5,0.5);
+            const cubeMaterial = new THREE.MeshLambertMaterial({color: randomCubeColors,opacity: 0.5,transparent: true});
+            const cube = new THREE.Mesh(cubeGeometry,cubeMaterial);
+            cube.position.set(index*1.5-3, 0.5, -5.2);
+            cube.castShadow = true;
+            cube.receiveShadow = true;
+
+            sceneGraph.add(cube);
+
+            cubes.push(cube);
         }
 
 
@@ -182,20 +193,21 @@
 
                 // Create a cube to hold
                 const TestGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-                const TestMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(0,255,255)' });
+                const TestMaterial = new THREE.MeshPhongMaterial({ color:0Xff0000 });
                 const Test = new THREE.Mesh(TestGeometry, TestMaterial);
                 Test.position.set(1, 0.5, 3);
                 Test.name = "testCube"; // Name the test cube for reference
                 sceneGraph.add(Test);
-
+                Test.castShadow = true;
+                
                 // Add bounding box for the test cube
                 testCubeBB = new THREE.Box3().setFromObject(Test);
                 testCubeHelper = new THREE.Box3Helper(testCubeBB, 0xff0000); // Red bounding box
                 sceneGraph.add(testCubeHelper);
 
                 // Create a ground plane
-                const planeGeometry = new THREE.PlaneGeometry(6, 10);
-                const planeMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(200, 200, 200)', side: THREE.DoubleSide });
+                const planeGeometry = new THREE.PlaneGeometry(10, 10);
+                const planeMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(245, 245, 220)', side: THREE.DoubleSide });
                 const planeObject = new THREE.Mesh(planeGeometry, planeMaterial);
                 sceneGraph.add(planeObject);
 
@@ -243,45 +255,35 @@
                 );
 
                 // Create a table
-                const BoxGeometry = new THREE.BoxGeometry(6, 0.5, 1);
-                const BoxMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(200,255,150)' });
+                const BoxGeometry = new THREE.BoxGeometry(10, 0.5, 1);
+                const BoxMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(161,102,60)' });
                 const table = new THREE.Mesh(BoxGeometry, BoxMaterial);
                 sceneGraph.add(table);
-
-                // Set position of the cylinder
-                // Move to the right and towards the camera
-                // The base of the cylinder is on the plane
+                // Set table position
                 table.translateX(0).translateY(0).translateZ(-5.2);
 
-                // Set shadow property
-                table.castShadow = true;
-                
                 // add another table
                 const table2 = new THREE.Mesh(BoxGeometry,BoxMaterial);
                 sceneGraph.add(table2);
                 table2.translateX(0).translateY(0).translateZ(5.3);
 
-                // NEW - Create a CONVEX HULL
+                // add another table
+                const table3 = new THREE.Mesh(BoxGeometry,BoxMaterial);
+                sceneGraph.add(table3);
+                table3.translateX(4.5).translateY(0).translateZ(0);
+                table3.rotation.y = Math.PI/2;
 
-                const vertices = []
+                // add another table
+                const table4 = new THREE.Mesh(BoxGeometry,BoxMaterial);
+                sceneGraph.add(table4);
+                table4.translateX(-4.5).translateY(0).translateZ(0);
+                table4.rotation.y = Math.PI/2;
 
-                vertices.push(new THREE.Vector3(-1, 0, 1));
-                vertices.push(new THREE.Vector3(0, 0, 1));
-                vertices.push(new THREE.Vector3(0, 0, 2));
-                vertices.push(new THREE.Vector3(-1, 0, 2));
-                vertices.push(new THREE.Vector3(-0.5, 2.5, 1.5));
-
-                const meshMaterial = new THREE.MeshLambertMaterial({
-                    color: 0xffffff,
-                    opacity: 0.5,
-                    transparent: true
-                });
-
-                const meshGeometry = new ConvexGeometry(vertices);
-                const convexHull = new THREE.Mesh(meshGeometry, meshMaterial);
-                sceneGraph.add(convexHull);
-
-                convexHull.castShadow = true;
+                // Set shadow property
+                table.castShadow = true;
+                table2.castShadow = true;
+                table3.castShadow = true;
+                table4.castShadow = true;
             }
         };
 
@@ -303,7 +305,7 @@
                 
                 if (keyD){
                     kitten.rotation.y = 0;  // face right
-                    if(kitten.position.x <= 2.5)
+                    if(kitten.position.x <= 3.5)
                             kitten.translateX(kittenSpeed);
                 }
                 if (keyW) {
@@ -313,7 +315,7 @@
                 }
                 if (keyA) {
                     kitten.rotation.y = -Math.PI;   // face left
-                    if(kitten.position.x >= -2.5)
+                    if(kitten.position.x >= -3.5)
                         kitten.translateX(kittenSpeed);
                 }
                 if (keyS) {
@@ -417,10 +419,10 @@
                     keyW = true;
                     break;
                 case 32: //space
-                    if(keySpace == false)
-                        keySpace = true;
-                    else
-                        keySpace = false;
+                    keySpace = true;
+                    break;
+                case 82: // r
+                    updateCubeColors();
                     break;
             }
         }
@@ -439,6 +441,8 @@
                 case 87: //w
                     keyW = false;
                     break;
+                case 32: //space
+                    keySpace = false;
             }
         }
 
@@ -452,6 +456,10 @@
 
 <body>
     <div id="ElGatitoPizzeria"> </div>
+    <div id="colorUpdateCounter" style="position: absolute; top: 10px; left: 10px; background: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; font-family: Arial, sans-serif;">
+        Points: xxxxxxx
+        Resets: xxxxxxx
+    </div>
 </body>
 
 </html>

@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title> ElGatitoPizzeria </title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script type="importmap">
+        {
+          "imports": {
+            "three": "https://threejs.org/build/three.module.js",
+            "three/addons/": "https://threejs.org/examples/jsm/"
+          }
+        }
+      </script>
+
+    <script type="module">
+
+        import * as THREE from "three";
+
+        import { ConvexGeometry } from "three/addons/geometries/ConvexGeometry.js";
+        import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+        import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+        // To store the scene graph, and elements usefull to rendering the scene
+        const sceneElements = {
+            sceneGraph: null,
+            camera: null,
+            control: null,  // NEW
+            renderer: null,
+        };
+
+        // HELPER FUNCTIONS
+
+        const helper = {
+
+            initEmptyScene: function (sceneElements) {
+
+                // Create the 3D scene
+                sceneElements.sceneGraph = new THREE.Scene();
+
+                // Add camera
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 500);
+                sceneElements.camera = camera;
+
+                // Illumination
+                // Add ambient light
+                const ambientLight = new THREE.AmbientLight('rgb(255, 255, 255)', 0.2);
+                sceneElements.sceneGraph.add(ambientLight);
+
+                // Add spotlight (with shadows)
+                const light_1 = new THREE.SpotLight('rgb(255, 255, 255)', 25);
+                light_1.decay = 1;
+                light_1.position.set(-5, 8, 0);
+                sceneElements.sceneGraph.add(light_1);
+
+                // Setup shadow properties for the spotlight
+                light_1.castShadow = true;
+                light_1.shadow.mapSize.width = 2048;
+                light_1.shadow.mapSize.height = 2048;
+
+                // Give a name to the spot light
+                light_1.name = "light 1";
+
+                // Create renderer (with shadow map)
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                sceneElements.renderer = renderer;
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setClearColor('rgb(84,107,171)', 1);
+                renderer.setSize(width, height);
+
+                // Setup shadowMap property
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+                // Add the rendered image in the HTML DOM
+                const htmlElement = document.querySelector("#ElGatitoPizzeria");
+                htmlElement.appendChild(renderer.domElement);
+
+                //Control for the camera
+                sceneElements.control = new OrbitControls(camera, renderer.domElement);
+                sceneElements.control.screenSpacePanning = true;
+
+            },
+
+            render: function (sceneElements) {
+                sceneElements.renderer.render(sceneElements.sceneGraph, sceneElements.camera);
+            },
+        };
+
+        const cubes = [];
+        const cubesFood = [];
+        const customers = [];
+        const CubeColors = ["#ff0000", "#ffffff", "#04ff00", "#04ff00", "#9500ff"];
+        const customerColors = ["#a88532", "#a85532", "#000000", "#ffffff", "#253745"];
+        
+        //generate random color cubes (foods)
+        function generateRandomCubeColor(sceneGraph, index){
+            const randomFoodColors = CubeColors[Math.floor(Math.random() * CubeColors.length)];
+            const cubeFoodGeometry = new THREE.BoxGeometry(0.5,0.5,0.5);
+            const cubeFoodMaterial = new THREE.MeshPhongMaterial({ color: randomFoodColors });
+            const cubeFood = new THREE.Mesh(cubeFoodGeometry,cubeFoodMaterial);
+            cubeFood.position.set(index*1.5-3, 0.5, 5.2);
+
+            cubeFood.castShadow = true;
+            cubeFood.receiveShadow = true;
+
+            sceneGraph.add(cubeFood);
+
+            cubesFood.push(cubeFood);
+        }
+
+        //change the color of food cubes
+        function updateCubeColors() {
+            cubesFood.forEach((cube) => {
+                const newColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
+                cube.material.color.set(newColor);
+                console.log(cube.id, newColor);
+            });
+        }
+
+        // reset customer cubes to random colors not finished
+        function updateCustomerCubeColors() {
+            cubes.forEach((cube) => {
+                const newColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
+                cube.material.color.set(newColor);
+                console.log(cube.id, newColor);
+            });
+            //update customer model color
+            customers.forEach((customer) => {
+                const randomColor = customerColors[Math.floor(Math.random() * customerColors.length)];
+                customer.traverse(function (node) {
+                    if (node.isMesh) {
+                        node.material.color.set(randomColor);
+                    }
+                });
+            });
+        }
+
+        setInterval(() => {
+            updateCustomerCubeColors();
+        }, 2000);
+
+        // Function to generate customer
+        function generateRandomCustomer(sceneGraph,index){
+            const loader = new GLTFLoader();
+            loader.load(
+                'Kitten.glb',
+                function (gltf) {
+                    const customer = gltf.scene;
+
+                    customer.position.set(index*1.5-3,0.5,-5.8);
+                    customer.scale.set(0.1,0.1,0.1);
+                    customer.rotation.y = -Math.PI/2;
+
+                    // pick random color from array colors
+                    const randomColor = customerColors[Math.floor(Math.random() * customerColors.length)];
+
+                    customer.traverse(function (node) {
+                    if (node.isMesh) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+
+                        // Assign a random color to the kitten
+                        node.material.color.set(randomColor);
+                    }
+                });
+
+                // Add the kitten to the scene
+                sceneGraph.add(customer);
+
+                // Store the customer in the array for later updates
+                customers.push(customer);
+            },
+            undefined,
+            function (error) {
+                console.error('An error occurred while loading the kitten model:', error);
+            }
+            )
+            
+            const randomCubeColors = CubeColors[Math.floor(Math.random() * CubeColors.length)];
+            const customerCubeGeometry = new THREE.BoxGeometry(0.5,0.5,0.5);
+            const customerCubeMaterial = new THREE.MeshLambertMaterial({color: randomCubeColors,opacity: 0.5,transparent: true});
+            const customerCube = new THREE.Mesh(customerCubeGeometry,customerCubeMaterial);
+            customerCube.position.set(index*1.5-3, 0.5, -5.2);
+            customerCube.castShadow = true;
+            customerCube.receiveShadow = true;
+            customerCube.name = "customerCube";
+            sceneGraph.add(customerCube);
+
+            // cube bounding box
+            const customerCubeBB =  new THREE.Box3().setFromObject(customerCube);
+            const customerCubeHelper = new THREE.Box3Helper(customerCubeBB, 0x0000ff); // blue 
+            customerCubeBB.expandByScalar(0.2);
+            // sceneGraph.add(customerCubeHelper);
+
+            cubes.push(customerCube);
+        }
+
+
+        // FUCNTIONS FOR BUILDING THE SCENE
+
+        const scene = {
+
+            // Create and insert in the scene graph the models of the 3D scene
+
+            load3DObjects: function (sceneGraph) {
+                
+                // generate cubes of food
+                for (let i = 0; i < 5; i++) {
+                    generateRandomCubeColor(sceneGraph, i);
+                    generateRandomCustomer(sceneGraph,i);
+                }
+
+                // Create a cube to hold
+                const TestGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                const TestMaterial = new THREE.MeshPhongMaterial({ color:0Xff0000 });
+                const Test = new THREE.Mesh(TestGeometry, TestMaterial);
+                Test.position.set(1, 0.5, 3);
+                Test.name = "testCube";
+                sceneGraph.add(Test);
+                Test.castShadow = true;
+                
+                // Add bounding box for the test cube
+                testCubeBB = new THREE.Box3().setFromObject(Test);
+                testCubeHelper = new THREE.Box3Helper(testCubeBB, 0xff0000); // red
+                // sceneGraph.add(testCubeHelper);
+
+                // Create a ground plane
+                const planeGeometry = new THREE.PlaneGeometry(10, 10);
+                const planeMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(222,184,135)', side: THREE.DoubleSide });
+                const planeObject = new THREE.Mesh(planeGeometry, planeMaterial);
+                sceneGraph.add(planeObject);
+
+                planeObject.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+                planeObject.receiveShadow = true;
+
+                // Create a kitten
+                const loader = new GLTFLoader();
+                loader.load(
+                    'Kitten.glb',
+                    function (gltf) {
+                        const kitten = gltf.scene;
+
+                        kitten.position.set(0, 0, 0);
+
+                        kitten.scale.set(0.1, 0.1, 0.1);
+
+                        kitten.traverse(function (node) {
+                            if (node.isMesh) {
+                                node.castShadow = true;
+                                node.receiveShadow = true;
+                            }
+                        });
+
+                        sceneGraph.add(kitten);
+
+                        kitten.name = "kitten";
+
+                        // Create a bounding box for the kitten
+                        kittenBB = new THREE.Box3().setFromObject(kitten);
+                        kittenHelper = new THREE.Box3Helper(kittenBB, 0x00ff00); // green
+                        // sceneGraph.add(kittenHelper);
+                    },
+                    undefined,
+                    function (error) {
+                        console.error('An error occurred while loading the model:', error);
+                    }
+                );
+
+                // Create a table
+                const BoxGeometry = new THREE.BoxGeometry(10, 0.5, 1);
+                const BoxMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(99,59,59)' });
+                const table = new THREE.Mesh(BoxGeometry, BoxMaterial);
+                sceneGraph.add(table);
+                // Set table position
+                table.translateX(0).translateY(0).translateZ(-5.2);
+
+                // add another table
+                const table2 = new THREE.Mesh(BoxGeometry,BoxMaterial);
+                sceneGraph.add(table2);
+                table2.translateX(0).translateY(0).translateZ(5.3);
+
+                // add another table
+                const table3 = new THREE.Mesh(BoxGeometry,BoxMaterial);
+                sceneGraph.add(table3);
+                table3.translateX(4.5).translateY(0).translateZ(0);
+                table3.rotation.y = Math.PI/2;
+
+                // add another table
+                const table4 = new THREE.Mesh(BoxGeometry,BoxMaterial);
+                sceneGraph.add(table4);
+                table4.translateX(-4.5).translateY(0).translateZ(0);
+                table4.rotation.y = Math.PI/2;
+
+                // Set shadow property
+                table.castShadow = true;
+                table2.castShadow = true;
+                table3.castShadow = true;
+                table4.castShadow = true;
+            }
+        };
+
+        // ANIMATION
+        // variables
+        var kittenSpeed = 0.05;
+        var keyD = false, keyA = false, keyS = false, keyW = false, keySpace = false;
+        const cameraOffset = new THREE.Vector3(0, 10, 10);
+        var score = 0;
+        // bounding boxes
+        let testCubeBB, testCubeHelper;
+        let kittenBB, kittenHelper;
+        let customerCubeBB, customerCubeHelper;
+
+        function computeFrame(time) {
+            // controling kitten with keyboard
+            const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
+            const testCube = sceneElements.sceneGraph.getObjectByName("testCube");
+            document.getElementById("score").textContent = score;
+
+            if (kitten) {
+                
+                if (keyD){
+                    kitten.rotation.y = 0;  // face right
+                    if(kitten.position.x <= 3.5)
+                            kitten.translateX(kittenSpeed);
+                }
+                if (keyW) {
+                    kitten.rotation.y = Math.PI / 2; // face forward
+                    if(kitten.position.z >= -4.5)
+                        kitten.translateX(kittenSpeed);
+                }
+                if (keyA) {
+                    kitten.rotation.y = -Math.PI;   // face left
+                    if(kitten.position.x >= -3.5)
+                        kitten.translateX(kittenSpeed);
+                }
+                if (keyS) {
+                    kitten.rotation.y = -Math.PI / 2;   // face back
+                    if(kitten.position.z <= 4.5)
+                        kitten.translateX(kittenSpeed);
+                }
+
+                // Update kitten bounding box
+                kittenBB.setFromObject(kitten);
+                kittenBB.expandByScalar(0.2);
+                kittenHelper.updateMatrixWorld(true);
+            }
+
+            // Update test cube bounding box
+            if (testCube) {
+                testCubeBB.setFromObject(testCube);
+                testCubeBB.expandByScalar(0.2);
+                testCubeHelper.updateMatrixWorld(true); // Update the matrix
+
+                // Check for intersection with kitten
+                if (kitten && kittenBB.intersectsBox(testCubeBB) && keySpace) {
+                    const forward = new THREE.Vector3(1, 0.5, 0);
+                    forward.applyQuaternion(kitten.quaternion); // Rotate forward vector by kitten's rotation
+                    forward.normalize();
+
+                    const offset = forward;
+                    testCube.position.copy(kitten.position.clone().add(offset));
+                }
+
+                // Check if the test cube intersects with any customer cubes
+                cubes.forEach((customerCube) => {
+                    const customerCubeBB = new THREE.Box3().setFromObject(customerCube);
+                    if (testCubeBB.intersectsBox(customerCubeBB)) {
+                        console.log("testCube intersects with customerCube");
+                        if (testCube.material.color.getHex() === customerCube.material.color.getHex()) {
+                            console.log("right color");
+                            score += 10;
+
+                            // Remove the customer cube
+                            sceneElements.sceneGraph.remove(customerCube);
+
+                            // Respawn the test cube at its original position
+                            testCube.position.set(1, 0.5, 3);
+                            testCubeBB.setFromObject(testCube); // Update bounding box
+                            // change its color  to one of the food cubes
+                            const randomFoodColors = CubeColors[Math.floor(Math.random() * CubeColors.length)];
+                            testCube.material.color.set(randomFoodColors);
+
+                            // Remove the customer cube from the array
+                            const index = cubes.indexOf(customerCube);
+                            if (index > -1) {
+                                cubes.splice(index, 1);
+                            }
+                        } else {
+                            console.log("wrong color");
+                        }
+                    }
+                });
+            }
+
+            // Camera follows the kitten
+            if (kitten) {
+                const kittenPosition = kitten.position.clone();
+                const cameraPosition = kittenPosition.add(cameraOffset);
+
+                sceneElements.camera.position.copy(cameraPosition);
+                sceneElements.camera.lookAt(kitten.position);
+            }
+
+            // Rendering
+            helper.render(sceneElements);
+
+            // NEW --- Update control of the camera
+            sceneElements.control.update();
+
+            // Animation
+            // Call for the next frame
+            requestAnimationFrame(computeFrame);
+        }
+
+        // Call functions:
+        //  1. Initialize the empty scene
+        //  2. Add elements within the scene
+        //  3. Animate
+
+        function init() {
+            helper.initEmptyScene(sceneElements);
+            scene.load3DObjects(sceneElements.sceneGraph);
+            requestAnimationFrame(computeFrame);
+        }
+
+        // HANDLING EVENTS
+
+        // Event Listeners
+
+        window.addEventListener('resize', resizeWindow);
+
+        document.addEventListener('keydown', onDocumentKeyDown, false);
+        document.addEventListener('keyup', onDocumentKeyUp, false);
+
+        // Update render image size and camera aspect when the window is resized
+        function resizeWindow(eventParam) {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            sceneElements.camera.aspect = width / height;
+            sceneElements.camera.updateProjectionMatrix();
+
+            sceneElements.renderer.setSize(width, height);
+
+            // Comment when doing animation
+            // computeFrame(sceneElements);
+        }
+
+        function onDocumentKeyDown(event) {
+            switch (event.keyCode) {
+                case 68: //d
+                    keyD = true;
+                    break;
+                case 83: //s
+                    keyS = true;
+                    break;
+                case 65: //a
+                    keyA = true;
+                    break;
+                case 87: //w
+                    keyW = true;
+                    break;
+                case 32: //space
+                    keySpace = true;
+                    break;
+                case 82: // r
+                    updateCubeColors();
+                    break;
+                case 70: // f
+                    updateCustomerCubeColors();
+                    break;
+            }
+        }
+
+        function onDocumentKeyUp(event) {
+            switch (event.keyCode) {
+                case 68: //d
+                    keyD = false;
+                    break;
+                case 83: //s
+                    keyS = false;
+                    break;
+                case 65: //a
+                    keyA = false;
+                    break;
+                case 87: //w
+                    keyW = false;
+                    break;
+                case 32: //space
+                    keySpace = false;
+            }
+        }
+
+        // STARTING
+
+        init();
+
+    </script>
+
+</head>
+
+<body>
+    <div id="ElGatitoPizzeria"> </div>
+    <div id="colorUpdateCounter" style="position: absolute; top: 10px; left: 10px; background: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; font-family: Arial, sans-serif;">
+        <h3>Controls</h3>
+        <div id = "table">
+            <li style="margin-bottom: 5px;"><b>Movement: </b>A,W,S,D</li>
+            <li style="margin-bottom: 5px;"><b>PickUp: </b> SpaceBar (hold)</li>
+            <li style="margin-bottom: 5px;"><b>Reset Food Colors: </b>R</li>
+            <li style="margin-bottom: 5px;"><b>Reset Customer Food Colors: </b>F</li>
+            <li style="margin-bottom: 5px; font-size: xx-large;"><b>Score: </b><span id="score"></span></li>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -73,7 +73,7 @@
                 const renderer = new THREE.WebGLRenderer({ antialias: true });
                 sceneElements.renderer = renderer;
                 renderer.setPixelRatio(window.devicePixelRatio);
-                renderer.setClearColor('rgb(255, 255, 150)', 1.0);
+                renderer.setClearColor('rgb(84,107,171)', 1);
                 renderer.setSize(width, height);
 
                 // Setup shadowMap property
@@ -199,7 +199,7 @@
             const customerCubeBB =  new THREE.Box3().setFromObject(customerCube);
             const customerCubeHelper = new THREE.Box3Helper(customerCubeBB, 0x0000ff); // blue 
             customerCubeBB.expandByScalar(0.2);
-            sceneGraph.add(customerCubeHelper);
+            // sceneGraph.add(customerCubeHelper);
 
             cubes.push(customerCube);
         }
@@ -231,11 +231,11 @@
                 // Add bounding box for the test cube
                 testCubeBB = new THREE.Box3().setFromObject(Test);
                 testCubeHelper = new THREE.Box3Helper(testCubeBB, 0xff0000); // red
-                sceneGraph.add(testCubeHelper);
+                // sceneGraph.add(testCubeHelper);
 
                 // Create a ground plane
                 const planeGeometry = new THREE.PlaneGeometry(10, 10);
-                const planeMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(245, 245, 220)', side: THREE.DoubleSide });
+                const planeMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(222,184,135)', side: THREE.DoubleSide });
                 const planeObject = new THREE.Mesh(planeGeometry, planeMaterial);
                 sceneGraph.add(planeObject);
 
@@ -267,7 +267,7 @@
                         // Create a bounding box for the kitten
                         kittenBB = new THREE.Box3().setFromObject(kitten);
                         kittenHelper = new THREE.Box3Helper(kittenBB, 0x00ff00); // green
-                        sceneGraph.add(kittenHelper);
+                        // sceneGraph.add(kittenHelper);
                     },
                     undefined,
                     function (error) {
@@ -277,7 +277,7 @@
 
                 // Create a table
                 const BoxGeometry = new THREE.BoxGeometry(10, 0.5, 1);
-                const BoxMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(161,102,60)' });
+                const BoxMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(99,59,59)' });
                 const table = new THREE.Mesh(BoxGeometry, BoxMaterial);
                 sceneGraph.add(table);
                 // Set table position
@@ -517,7 +517,7 @@
             <li style="margin-bottom: 5px;"><b>PickUp: </b> SpaceBar (hold)</li>
             <li style="margin-bottom: 5px;"><b>Reset Food Colors: </b>R</li>
             <li style="margin-bottom: 5px;"><b>Reset Customer Food Colors: </b>F</li>
-            <li style="margin-bottom: 5px;"><b>Score: </b><span id="score"></span></li>
+            <li style="margin-bottom: 5px; font-size: xx-large;"><b>Score: </b><span id="score"></span></li>
         </div>
     </div>
 </body>

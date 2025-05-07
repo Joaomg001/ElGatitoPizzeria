@@ -84,7 +84,7 @@
                 const htmlElement = document.querySelector("#ElGatitoPizzeria");
                 htmlElement.appendChild(renderer.domElement);
 
-                //Control for the camera
+                // Control for the camera
                 sceneElements.control = new OrbitControls(camera, renderer.domElement);
                 sceneElements.control.screenSpacePanning = true;
 
@@ -101,7 +101,7 @@
         const CubeColors = ["#ff0000", "#ffffff", "#04ff00", "#04ff00", "#9500ff"];
         const customerColors = ["#a88532", "#a85532", "#000000", "#ffffff", "#253745"];
         
-        //generate random color cubes (foods)
+        // Generate random color cubes (foods)
         function generateRandomCubeColor(sceneGraph, index){
             const randomFoodColors = CubeColors[Math.floor(Math.random() * CubeColors.length)];
             const cubeFoodGeometry = new THREE.BoxGeometry(0.5,0.5,0.5);
@@ -117,7 +117,7 @@
             cubesFood.push(cubeFood);
         }
 
-        //change the color of food cubes
+        // Change the color of food cubes
         function updateCubeColors() {
             cubesFood.forEach((cube) => {
                 const newColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
@@ -126,14 +126,14 @@
             });
         }
 
-        // reset customer cubes to random colors not finished
+        // Reset customer cubes to random colors not finished
         function updateCustomerCubeColors() {
             cubes.forEach((cube) => {
                 const newColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
                 cube.material.color.set(newColor);
                 console.log(cube.id, newColor);
             });
-            //update customer model color
+            // Update customer model color
             customers.forEach((customer) => {
                 const randomColor = customerColors[Math.floor(Math.random() * customerColors.length)];
                 customer.traverse(function (node) {
@@ -195,30 +195,143 @@
             customerCube.name = "customerCube";
             sceneGraph.add(customerCube);
 
-            // cube bounding box
+            // Cube bounding box
             const customerCubeBB =  new THREE.Box3().setFromObject(customerCube);
             const customerCubeHelper = new THREE.Box3Helper(customerCubeBB, 0x0000ff); // blue 
             customerCubeBB.expandByScalar(0.2);
-            // sceneGraph.add(customerCubeHelper);
+            // SceneGraph.add(customerCubeHelper);
 
             cubes.push(customerCube);
         }
 
+        // TEST CREATING PIZZA SHAPE
+        const pizzasA = [];
+        function createPizza(sceneGraph,index) {
+            const scale = 0.2;
+            const randomPizza = Math.floor(Math.random()*5) // 5 different types
+            let toppingColor, toppingType;
+            let toppingFlag = false;
+
+            switch(randomPizza){
+                case 0: // Cheese
+                    toppingFlag = false;
+                    break;
+                case 1: // Pepperoni
+                    toppingFlag = true;
+                    toppingType = 0;
+                    toppingColor = 'rgb(210, 43, 43)';
+                    break;rgb(210, 43, 43)
+                case 2: // Olives
+                    toppingFlag = true;
+                    toppingType = 0;
+                    toppingColor = 'rgb(0,0,0)';
+                    break;
+                case 3: // Bacon
+                    toppingFlag = true;
+                    toppingType = 1;
+                    toppingColor = 'rgb(240,128,128)';
+                    break;
+                case 4: // Peppers
+                    toppingFlag = true;
+                    toppingType = 1;
+                    toppingColor = 'rgb(0,128,0)';                
+            }
+
+            // Create the pizza base
+            const pizzaGroup = new THREE.Group();
+
+            const pizzaBaseGeometry = new THREE.CylinderGeometry(2*scale,2*scale,0.05*scale, 32);
+            const pizzaBaseMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(238, 192, 123)' ,opacity: 0.5,transparent: true});
+            const pizzaBase = new THREE.Mesh(pizzaBaseGeometry, pizzaBaseMaterial);
+            pizzaBase.position.set(0, 0.1*scale, 0);
+            pizzaBase.receiveShadow = true;
+            pizzaBase.castShadow = true;
+            pizzaGroup.add(pizzaBase);
+
+            // Create cheese
+            const cheeseGeometry = new THREE.CircleGeometry(1.8*scale, 32);
+            const cheeseMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(247, 223, 71)' ,opacity: 0.5,transparent: true});
+            const cheese = new THREE.Mesh(cheeseGeometry, cheeseMaterial);
+            cheese.rotation.x = -Math.PI / 2;
+            cheese.position.set(0, 0.15*scale, 0);
+            cheese.receiveShadow = true;
+            pizzaGroup.add(cheese);
+            
+            // Create toppings
+            if(toppingFlag == true && toppingType == 0){
+                const toppingGeometry = new THREE.CircleGeometry(0.2*scale, 16);
+                const toppingMaterial = new THREE.MeshPhongMaterial({ color: toppingColor ,opacity: 0.5,transparent: true});
+
+                const toppingPositions = [
+                    { x: 0.5*scale, z: 0.5*scale },
+                    { x: -0.5*scale, z: 0.5*scale },
+                    { x: 0.5*scale, z: -0.5*scale },
+                    { x: -0.5*scale, z: -0.5*scale },
+                    { x: 0, z: 0 },
+                    { x: 1*scale, z: 1*scale },
+                    { x: -1*scale, z: 1*scale },
+                    { x: 1*scale, z: -1*scale },
+                    { x: -1*scale, z: -1*scale },
+                    { x: 0, z: 1*scale },
+                    { x: 0, z: -1*scale },
+                    { x: 1*scale, z: 0 },
+                    { x: -1*scale, z: 0 }
+                ];
+
+                toppingPositions.forEach((pos) => {
+                    const topping = new THREE.Mesh(toppingGeometry, toppingMaterial);
+                    topping.rotation.x = -Math.PI / 2; 
+                    topping.position.set(pos.x, 0.2*scale, pos.z);
+                    pizzaGroup.add(topping);
+                });
+            }
+
+            if(toppingFlag == true && toppingType == 1){
+                const toppingGeometry = new THREE.PlaneGeometry(0.3*scale,0.9*scale);
+                const toppingMaterial = new THREE.MeshPhongMaterial({color: toppingColor});
+
+                const toppingPositions = [
+                    {x: 0, z:0},
+                    {x: 1*scale, z:0},
+                    {x:0, z:1*scale},
+                    {x: -1*scale, z:0},
+                    {x:0, z:-1*scale}
+                ]
+                
+                toppingPositions.forEach((pos) => {
+                    const topping = new THREE.Mesh(toppingGeometry,toppingMaterial);
+                    topping.rotation.x = -Math.PI / 2;
+                    topping.rotation.z = Math.PI / 4;
+                    topping.position.set(pos.x, 0.2*scale, pos.z);
+                    pizzaGroup.add(topping);
+                })
+            }
+
+            pizzaGroup.position.set(index*1.5-3, 0.3, 1);
+            pizzaGroup.name = "";
+            // TESTING PIZZA
+            //pizzaBB = new THREE.Box3().setFromObject(pizzaGroup);
+            //pizzaHelper = new THREE.Box3Helper(pizzaBB, 0xff0000); // red
+            //sceneGraph.add(pizzaHelper);
+            // ENDS HERE
+            sceneGraph.add(pizzaGroup);
+            pizzasA.push(pizzaGroup);
+        }
 
         // FUCNTIONS FOR BUILDING THE SCENE
-
+        let pizzaBB,pizzaHelper;            // TESTING PIZZA BB
         const scene = {
 
             // Create and insert in the scene graph the models of the 3D scene
 
             load3DObjects: function (sceneGraph) {
                 
-                // generate cubes of food
+                // Generate cubes of food
                 for (let i = 0; i < 5; i++) {
                     generateRandomCubeColor(sceneGraph, i);
                     generateRandomCustomer(sceneGraph,i);
+                    createPizza(sceneGraph,i);
                 }
-
                 // Create a cube to hold
                 const TestGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
                 const TestMaterial = new THREE.MeshPhongMaterial({ color:0Xff0000 });
@@ -283,18 +396,18 @@
                 // Set table position
                 table.translateX(0).translateY(0).translateZ(-5.2);
 
-                // add another table
+                // Add another table
                 const table2 = new THREE.Mesh(BoxGeometry,BoxMaterial);
                 sceneGraph.add(table2);
                 table2.translateX(0).translateY(0).translateZ(5.3);
 
-                // add another table
+                // Add another table
                 const table3 = new THREE.Mesh(BoxGeometry,BoxMaterial);
                 sceneGraph.add(table3);
                 table3.translateX(4.5).translateY(0).translateZ(0);
                 table3.rotation.y = Math.PI/2;
 
-                // add another table
+                // Add another table
                 const table4 = new THREE.Mesh(BoxGeometry,BoxMaterial);
                 sceneGraph.add(table4);
                 table4.translateX(-4.5).translateY(0).translateZ(0);
@@ -310,17 +423,17 @@
 
         // ANIMATION
         // variables
-        var kittenSpeed = 0.05;
-        var keyD = false, keyA = false, keyS = false, keyW = false, keySpace = false;
+        let kittenSpeed = 0.05;
+        let keyD = false, keyA = false, keyS = false, keyW = false, keySpace = false;
         const cameraOffset = new THREE.Vector3(0, 10, 10);
-        var score = 0;
-        // bounding boxes
+        let score = 0;
+        // Bounding boxes
         let testCubeBB, testCubeHelper;
         let kittenBB, kittenHelper;
         let customerCubeBB, customerCubeHelper;
 
         function computeFrame(time) {
-            // controling kitten with keyboard
+            // Controling kitten with keyboard
             const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
             const testCube = sceneElements.sceneGraph.getObjectByName("testCube");
             document.getElementById("score").textContent = score;
@@ -452,7 +565,7 @@
             sceneElements.renderer.setSize(width, height);
 
             // Comment when doing animation
-            // computeFrame(sceneElements);
+            // ComputeFrame(sceneElements);
         }
 
         function onDocumentKeyDown(event) {

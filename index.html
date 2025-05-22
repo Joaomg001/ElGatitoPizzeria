@@ -35,8 +35,9 @@
             renderer: null,
         };
 
+        ///////////////////////////////////////////////////////////////////////
         // HELPER FUNCTIONS
-
+        ///////////////////////////////////////////////////////////////////////
         const helper = {
 
             initEmptyScene: function (sceneElements) {
@@ -54,7 +55,7 @@
                 // Add ambient light
                 const ambientLight = new THREE.AmbientLight('rgb(255, 255, 255)', 0.2);
                 sceneElements.sceneGraph.add(ambientLight);
-
+                /**
                 // Add spotlight (with shadows)
                 const light_1 = new THREE.SpotLight('rgb(255, 255, 255)', 25);
                 light_1.decay = 1;
@@ -68,7 +69,7 @@
 
                 // Give a name to the spot light
                 light_1.name = "light 1";
-
+                */
                 // Create renderer (with shadow map)
                 const renderer = new THREE.WebGLRenderer({ antialias: true });
                 sceneElements.renderer = renderer;
@@ -100,8 +101,10 @@
         const customers = [];
         const CubeColors = ["#ff0000", "#ffffff", "#04ff00", "#04ff00", "#9500ff"];
         const customerColors = ["#a88532", "#a85532", "#000000", "#ffffff", "#253745"];
-        
+
+        ///////////////////////////////////////////////////////////////////////
         // Generate random color cubes (foods)
+        ///////////////////////////////////////////////////////////////////////
         function generateRandomCubeColor(sceneGraph, index){
             const randomFoodColors = CubeColors[Math.floor(Math.random() * CubeColors.length)];
             const cubeFoodGeometry = new THREE.BoxGeometry(0.5,0.5,0.5);
@@ -117,7 +120,9 @@
             cubesFood.push(cubeFood);
         }
 
+        ///////////////////////////////////////////////////////////////////////
         // Change the color of food cubes
+        ///////////////////////////////////////////////////////////////////////
         function updateCubeColors() {
             cubesFood.forEach((cube) => {
                 const newColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
@@ -126,7 +131,9 @@
             });
         }
 
+        ///////////////////////////////////////////////////////////////////////
         // Reset customer cubes to random colors not finished
+        ///////////////////////////////////////////////////////////////////////
         function updateCustomerCubeColors() {
             cubes.forEach((cube) => {
                 const newColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
@@ -148,8 +155,11 @@
             updateCustomerCubeColors();
         }, 2000);
 
+        ///////////////////////////////////////////////////////////////////////
         // Function to generate customer
+        ///////////////////////////////////////////////////////////////////////
         function generateRandomCustomer(sceneGraph,index){
+            const CustomerGroup = new THREE.Group();
             const loader = new GLTFLoader();
             loader.load(
                 'Kitten.glb',
@@ -203,8 +213,9 @@
 
             cubes.push(customerCube);
         }
-
-        // TEST CREATING PIZZA SHAPE
+        ///////////////////////////////////////////////////////////////////////
+        // TEST CREATING PIZZA
+        ///////////////////////////////////////////////////////////////////////
         const pizzasA = [];
         function createPizza(sceneGraph,index) {
             const scale = 0.2;
@@ -236,21 +247,32 @@
                     toppingType = 1;
                     toppingColor = 'rgb(0,128,0)';                
             }
-
-            // Create the pizza base
+            
+            ///////////////////////////////////////////////////////////////////////
+            // CREATE THE PIZZA BASE
+            ///////////////////////////////////////////////////////////////////////
+            
             const pizzaGroup = new THREE.Group();
 
-            const pizzaBaseGeometry = new THREE.CylinderGeometry(2*scale,2*scale,0.05*scale, 32);
-            const pizzaBaseMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(238, 192, 123)' ,opacity: 0.5,transparent: true});
+            const pizzaBaseGeometry = new THREE.CylinderGeometry(2.1*scale,2.1*scale,0.05*scale, 32);
+            const pizzaBaseMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(238, 192, 123)'});
             const pizzaBase = new THREE.Mesh(pizzaBaseGeometry, pizzaBaseMaterial);
             pizzaBase.position.set(0, 0.1*scale, 0);
             pizzaBase.receiveShadow = true;
             pizzaBase.castShadow = true;
             pizzaGroup.add(pizzaBase);
 
+            const plateGeometry = new THREE.CylinderGeometry(2.2*scale,2.2*scale,0.05*scale, 32);
+            const plateMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255,255,255)'});
+            const plate = new THREE.Mesh(plateGeometry, plateMaterial);
+            plate.position.set(0.05*scale, -0.1*scale, 0);
+            plate.receiveShadow = true;
+            plate.castShadow = true;
+            pizzaGroup.add(plate);
+
             // Create cheese
             const cheeseGeometry = new THREE.CircleGeometry(1.8*scale, 32);
-            const cheeseMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(247, 223, 71)' ,opacity: 0.5,transparent: true});
+            const cheeseMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(247, 223, 71)'});
             const cheese = new THREE.Mesh(cheeseGeometry, cheeseMaterial);
             cheese.rotation.x = -Math.PI / 2;
             cheese.position.set(0, 0.15*scale, 0);
@@ -260,7 +282,7 @@
             // Create toppings
             if(toppingFlag == true && toppingType == 0){
                 const toppingGeometry = new THREE.CircleGeometry(0.2*scale, 16);
-                const toppingMaterial = new THREE.MeshPhongMaterial({ color: toppingColor ,opacity: 0.5,transparent: true});
+                const toppingMaterial = new THREE.MeshPhongMaterial({ color: toppingColor});
 
                 const toppingPositions = [
                     { x: 0.5*scale, z: 0.5*scale },
@@ -307,18 +329,21 @@
                 })
             }
 
-            pizzaGroup.position.set(index*1.5-3, 0.3, 1);
+            pizzaGroup.position.set(index*1.5-3, 0.3, 5.2);
             pizzaGroup.name = "";
             // TESTING PIZZA
-            //pizzaBB = new THREE.Box3().setFromObject(pizzaGroup);
-            //pizzaHelper = new THREE.Box3Helper(pizzaBB, 0xff0000); // red
-            //sceneGraph.add(pizzaHelper);
+            pizzaBB = new THREE.Box3().setFromObject(pizzaGroup);
+            pizzaHelper = new THREE.Box3Helper(pizzaBB, 0xff0000); // red
+            sceneGraph.add(pizzaHelper);
             // ENDS HERE
             sceneGraph.add(pizzaGroup);
             pizzasA.push(pizzaGroup);
         }
-
+        
+        ///////////////////////////////////////////////////////////////////////
         // FUCNTIONS FOR BUILDING THE SCENE
+        ///////////////////////////////////////////////////////////////////////
+
         let pizzaBB,pizzaHelper;            // TESTING PIZZA BB
         const scene = {
 
@@ -328,10 +353,11 @@
                 
                 // Generate cubes of food
                 for (let i = 0; i < 5; i++) {
-                    generateRandomCubeColor(sceneGraph, i);
+                    //generateRandomCubeColor(sceneGraph, i);
                     generateRandomCustomer(sceneGraph,i);
                     createPizza(sceneGraph,i);
                 }
+
                 // Create a cube to hold
                 const TestGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
                 const TestMaterial = new THREE.MeshPhongMaterial({ color:0Xff0000 });
@@ -345,16 +371,7 @@
                 testCubeBB = new THREE.Box3().setFromObject(Test);
                 testCubeHelper = new THREE.Box3Helper(testCubeBB, 0xff0000); // red
                 // sceneGraph.add(testCubeHelper);
-
-                // Create a ground plane
-                const planeGeometry = new THREE.PlaneGeometry(10, 10);
-                const planeMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(222,184,135)', side: THREE.DoubleSide });
-                const planeObject = new THREE.Mesh(planeGeometry, planeMaterial);
-                sceneGraph.add(planeObject);
-
-                planeObject.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
-                planeObject.receiveShadow = true;
-
+                
                 // Create a kitten
                 const loader = new GLTFLoader();
                 loader.load(
@@ -365,6 +382,8 @@
                         kitten.position.set(0, 0, 0);
 
                         kitten.scale.set(0.1, 0.1, 0.1);
+
+                        kitten.rotation.y = -Math.PI / 2; 
 
                         kitten.traverse(function (node) {
                             if (node.isMesh) {
@@ -388,29 +407,43 @@
                     }
                 );
 
+                ///////////////////////////////////////////////////////////////////////
+                //  CREATE RESTAURANT
+                ///////////////////////////////////////////////////////////////////////
+
+
+                // Create a restaurant floor ground plane
+                const planeGeometry = new THREE.PlaneGeometry(10, 10);
+                const planeMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(222,184,135)', side: THREE.DoubleSide });
+                const planeObject = new THREE.Mesh(planeGeometry, planeMaterial);
+                sceneGraph.add(planeObject);
+
+                planeObject.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+                planeObject.receiveShadow = true;
+
                 // Create a table
                 const BoxGeometry = new THREE.BoxGeometry(10, 0.5, 1);
                 const BoxMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(99,59,59)' });
                 const table = new THREE.Mesh(BoxGeometry, BoxMaterial);
                 sceneGraph.add(table);
                 // Set table position
-                table.translateX(0).translateY(0).translateZ(-5.2);
+                table.position.set(0,0,-5.2);
 
                 // Add another table
                 const table2 = new THREE.Mesh(BoxGeometry,BoxMaterial);
                 sceneGraph.add(table2);
-                table2.translateX(0).translateY(0).translateZ(5.3);
+                table2.position.set(0,0,5.3);
 
                 // Add another table
                 const table3 = new THREE.Mesh(BoxGeometry,BoxMaterial);
                 sceneGraph.add(table3);
-                table3.translateX(4.5).translateY(0).translateZ(0);
+                table3.position.set(4.5,0,0);
                 table3.rotation.y = Math.PI/2;
 
                 // Add another table
                 const table4 = new THREE.Mesh(BoxGeometry,BoxMaterial);
                 sceneGraph.add(table4);
-                table4.translateX(-4.5).translateY(0).translateZ(0);
+                table4.position.set(-4.5,0,0);
                 table4.rotation.y = Math.PI/2;
 
                 // Set shadow property
@@ -418,10 +451,166 @@
                 table2.castShadow = true;
                 table3.castShadow = true;
                 table4.castShadow = true;
+
+                ///////////////////////////////////////////////////////////////////////
+                //  CREATE OUTSIDE SCENERY
+                ///////////////////////////////////////////////////////////////////////
+                
+                // Create grass plane
+                const grassGeometry = new THREE.BoxGeometry(50,50);
+                const grassMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(65,152,10)', side: THREE.DoubleSide });
+                const grass = new THREE.Mesh(grassGeometry, grassMaterial);
+                sceneGraph.add(grass);
+
+                grass.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+                grass.position.set(0,-0.7,0);
+                grass.receiveShadow = true;
+
+                // Create road plane
+                const roadGeometry = new THREE.BoxGeometry(50,4);
+                const roadMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(58,58,58)', side: THREE.DoubleSide });
+                const road = new THREE.Mesh(roadGeometry, roadMaterial);
+                sceneGraph.add(road);
+
+                road.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+                road.position.set(0,-0.5,-13);
+                road.receiveShadow = true;
+                
+                // Add road stripe
+                const roadstripeGeometry = new THREE.BoxGeometry(50,0.2);
+                const roadstripeMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255,255,255)', side: THREE.DoubleSide });
+                const roadstripe = new THREE.Mesh(roadstripeGeometry, roadstripeMaterial);
+                const roadstripeL = new THREE.Mesh(roadstripeGeometry, roadstripeMaterial);
+                const roadstripeR = new THREE.Mesh(roadstripeGeometry, roadstripeMaterial);
+                sceneGraph.add(roadstripe,roadstripeL,roadstripeR);
+
+                roadstripe.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+                roadstripe.position.set(0,-0.45,-15);
+                roadstripeL.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+                roadstripeL.position.set(0,-0.45,-13);
+                roadstripeR.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+                roadstripeR.position.set(0,-0.45,-11);
+
+                // add lamps
+                createLamp(sceneGraph);
+                // Add car
+                //createCar(sceneGraph);
+                
             }
         };
 
+        ///////////////////////////////////////////////////////////////////////
+        //  Lamp posts
+        ///////////////////////////////////////////////////////////////////////
+
+        function createLamp(sceneGraph){
+            let numLamps = 5;
+            const lampGroup = new THREE.Group();
+            const postGeometry = new THREE.CylinderGeometry(0.2,0.2,6,32);
+            const postMaterial = new THREE.MeshPhongMaterial({color: 'rgb(0,0,0)'});
+            const post = new THREE.Mesh(postGeometry,postMaterial);
+            lampGroup.add(post);
+
+            const lampCapGeomety = new THREE.SphereGeometry(0.5,32,16);
+            const lampCapMaterial = new THREE.MeshPhongMaterial({color: 'rgb(255, 162, 57)', transparent: true, opacity: 0.7, emissive: 'rgb(255, 162, 57)', emissiveIntensity: 1});
+            const lampCap = new THREE.Mesh(lampCapGeomety,lampCapMaterial);
+            lampCap.position.set(0,3,0);
+            lampGroup.add(lampCap);
+
+            // Light coming from the lamp
+            const lampLight = new THREE.PointLight('rgb(255, 162, 57)', 10, 10);
+            lampLight.castShadow = true;
+            lampLight.decay = 1;
+            lampLight.position.set(0, 3, 0);
+            lampGroup.add(lampLight);
+            lampGroup.position.set(0,0,-10);
+            lampGroup.castShadow = true;
+            lampGroup.receiveShadow = true;
+            lampGroup.receiveShadow = true;
+
+            // Add multiple Lamps to the scene
+            for(let i = 0; i < numLamps; i++){
+                const lampClone = lampGroup.clone();
+                lampClone.position.set(i*10-10,0,-10);
+                sceneGraph.add(lampClone);
+            }
+
+            sceneGraph.add(lampGroup);
+
+
+        }
+
+        ///////////////////////////////////////////////////////////////////////
+        //  Create Car
+        ///////////////////////////////////////////////////////////////////////
+
+        function createCar(sceneGraph) {
+            const carGroup = new THREE.Group();
+
+            // Car body
+            const bodyGeometry = new THREE.BoxGeometry(1.5, 0.5, 1);
+            const bodyMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255, 0, 0)' });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.set(0, 0.25, 0);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            carGroup.add(body);
+
+            // Car roof
+            const roofGeometry = new THREE.BoxGeometry(0.8, 0.3, 0.8);
+            const roofMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(200, 0, 0)' });
+            const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+            roof.position.set(0, 0.55, 0);
+            roof.castShadow = true;
+            roof.receiveShadow = true;
+            carGroup.add(roof);
+
+            // Wheels
+            const wheelGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.2, 32);
+            const wheelMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(50, 50, 50)' });
+
+            const wheelPositions = [
+                { x: -0.6, y: 0, z: -0.5 },
+                { x: 0.6, y: 0, z: -0.5 },
+                { x: -0.6, y: 0, z: 0.5 },
+                { x: 0.6, y: 0, z: 0.5 },
+            ];
+
+            wheelPositions.forEach((pos) => {
+                const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+                wheel.rotation.x = Math.PI / 2;
+                wheel.position.set(pos.x, pos.y, pos.z);
+                wheel.castShadow = true;
+                wheel.receiveShadow = true;
+                carGroup.add(wheel);
+            });
+
+            // Set car position
+            carGroup.position.set(1,1,1);
+
+            // Add car to the scene
+            sceneGraph.add(carGroup);
+        }
+
+        ///////////////////////////////////////////////////////////////////////
+        // Timer functionality
+        ///////////////////////////////////////////////////////////////////////
+
+        let startTime = new Date().getTime();
+
+        var x = setInterval(function() {
+            let currentTime = new Date().getTime();
+            let timeDiff = currentTime - startTime;
+            let seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+            let minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+
+            document.getElementById("timer").innerHTML = minutes + "m " + seconds + "s ";
+        }, 1000);
+
+        ///////////////////////////////////////////////////////////////////////
         // ANIMATION
+        ///////////////////////////////////////////////////////////////////////
+        
         // variables
         let kittenSpeed = 0.05;
         let keyD = false, keyA = false, keyS = false, keyW = false, keySpace = false;
@@ -623,14 +812,20 @@
 
 <body>
     <div id="ElGatitoPizzeria"> </div>
-    <div id="colorUpdateCounter" style="position: absolute; top: 10px; left: 10px; background: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; font-family: Arial, sans-serif;">
+    <div id="helpMenu" style="position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.8); padding: 10px; border-radius: 5px; font-family: Arial, sans-serif;">
         <h3>Controls</h3>
         <div id = "table">
             <li style="margin-bottom: 5px;"><b>Movement: </b>A,W,S,D</li>
             <li style="margin-bottom: 5px;"><b>PickUp: </b> SpaceBar (hold)</li>
             <li style="margin-bottom: 5px;"><b>Reset Food Colors: </b>R</li>
             <li style="margin-bottom: 5px;"><b>Reset Customer Food Colors: </b>F</li>
-            <li style="margin-bottom: 5px; font-size: xx-large;"><b>Score: </b><span id="score"></span></li>
+        </div>
+    </div>
+    <div id = dataMenu style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border-radius: 5px; font-family: Arial, sans-serif;">
+        <div id="dataTable">
+            <b style="margin-bottom: 5px; font-size: xx-large;">Score: <span id="score"></span> </b>
+            <hr style="margin: 10px;">
+            <b style="margin-bottom: 5px;">Time: </b><span id="timer"></span>
         </div>
     </div>
 </body>

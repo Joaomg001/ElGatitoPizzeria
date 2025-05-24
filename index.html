@@ -48,7 +48,7 @@
                 // Add camera
                 const width = window.innerWidth;
                 const height = window.innerHeight;
-                const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 500);
+                const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 500);
                 sceneElements.camera = camera;
 
                 // Illumination
@@ -441,6 +441,7 @@
                 const woodenFloor = new THREE.Mesh(woodenFloorGeometry, woodenFloorMaterial);
                 woodenFloor.rotation.x = -Math.PI / 2;
                 sceneGraph.add(woodenFloor);
+                woodenFloor.receiveShadow = true;
 
                 // Create a table
                 const BoxGeometry = new THREE.BoxGeometry(10, 0.5, 1);
@@ -485,7 +486,7 @@
                 const restaurantWallsMaterials = [
                     new THREE.MeshPhongMaterial({ map: restaurantWallsTexture, side: THREE.DoubleSide}), // right
                     new THREE.MeshPhongMaterial({ map: restaurantWallsTexture , side: THREE.DoubleSide}), // left
-                    new THREE.MeshPhongMaterial({ color: 'rgb(169,169,169)' , transparent: true, opacity: 0.3}), // top
+                    new THREE.MeshPhongMaterial({ color: 'rgb(169,169,169)' , transparent: true, opacity: 0, side: THREE.DoubleSide}), // top
                     new THREE.MeshPhongMaterial({ color: 'rgb(169,169,169)' }), // bottom
                     new THREE.MeshPhongMaterial({ color: 'rgb(255,255,255)' , transparent: true, opacity: 0.3}), // front
                     new THREE.MeshPhongMaterial({ map: restaurantWallsTexture, side: THREE.DoubleSide })  // back
@@ -504,7 +505,7 @@
                 const lightRLampMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255, 255, 255)', transparent: true, opacity: 0.7, emissive: 'rgb(255, 255, 255)', emissiveIntensity: 1 });
                 const lightRLamp = new THREE.Mesh(lightRLampGeometry, lightRLampMaterial);
                 lightRLamp.castShadow = true;
-                lightRGroup.add(lightRLamp);
+                //lightRGroup.add(lightRLamp);
                 
                 const lightRSource = new THREE.PointLight('rgb(255, 255, 204)',10,10);
                 lightRSource.decay = 2;
@@ -514,13 +515,13 @@
                 for(let i = 0; i < lightRNumber; i++){
                     const lightRClone = lightRGroup.clone();
                     if(i == 0){
-                        lightRClone.position.set(-3, 3, -3);
+                        lightRClone.position.set(-3, 2, -3);
                     } else if(i == 1){
-                        lightRClone.position.set(-3, 3, 3);
+                        lightRClone.position.set(-3, 2, 3);
                     } else if(i == 2){
-                        lightRClone.position.set(3, 3, -3);
+                        lightRClone.position.set(3, 2, -3);
                     } else if(i == 3){
-                        lightRClone.position.set(3, 3, 3);
+                        lightRClone.position.set(3, 2, 3);
                     }
                     lightRClone.castShadow = true;
                     lightRClone.receiveShadow = true;
@@ -583,7 +584,7 @@
         ///////////////////////////////////////////////////////////////////////
 
         function createLamp(sceneGraph){
-            let numLamps = 5;
+            let numLamps = 6;
             const lampGroup = new THREE.Group();
             const postGeometry = new THREE.CylinderGeometry(0.2,0.2,6,32);
             const postMaterial = new THREE.MeshPhongMaterial({color: 'rgb(0,0,0)'});
@@ -610,11 +611,9 @@
             // Add multiple Lamps to the scene
             for(let i = 0; i < numLamps; i++){
                 const lampClone = lampGroup.clone();
-                lampClone.position.set(i*10-10,0,-10);
+                lampClone.position.set(i*10-20,0,-10);  
                 sceneGraph.add(lampClone);
             }
-
-            sceneGraph.add(lampGroup);
 
 
         }

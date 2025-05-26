@@ -135,17 +135,18 @@
         // Reset customer cubes to random colors not finished
         ///////////////////////////////////////////////////////////////////////
         function updateCustomerCubeColors() {
-                            console.log("////////////////////////////////////////////////////");
-            customerCubes.forEach((cube) => {
-                const newColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
-                cube.material.color.set(newColor);
-                console.log(cube.id, newColor);
-                //print customerCubes array
-                console.log("--------------------------------------------------");
-                console.log("CubesFood Array: ", customerCubes);
-                console.log("--------------------------------------------------");
-                
-            });
+                console.log("////////////////////////////////////////////////////");
+                console.log(customerCubes.length, " customer cubes");
+                console.log("////////////////////////////////////////////////////");
+                customerCubes.forEach((cube) => {
+                    const newColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
+                    cube.material.color.set(newColor);
+                    console.log(cube.id, newColor);
+                    //print customerCubes array
+                    console.log("--------------------------------------------------");
+                    console.log("CubesFood Array: ", customerCubes);
+                    console.log("--------------------------------------------------");
+                });
             // Update customer model color
             customers.forEach((customer) => {
                 const randomColor = customerColors[Math.floor(Math.random() * customerColors.length)];
@@ -156,27 +157,29 @@
                 });
             });
         }
-        /*
-        setInterval(() => {
-            updateCustomerCubeColors();
-        }, 2000);
-        */
+
         ///////////////////////////////////////////////////////////////////////
         // Function to generate customer
         ///////////////////////////////////////////////////////////////////////
-        function generateRandomCustomer(sceneGraph,index){
-            const CustomerGroup = new THREE.Group();
+        function generateRandomCustomer(sceneGraph, index, position) {
+            //const customerGroup = new THREE.Group();
             const loader = new GLTFLoader();
             loader.load(
                 'Kitten.glb',
                 function (gltf) {
                     const customer = gltf.scene;
 
-                    customer.position.set(index*1.5-3,0.5,-5.8);
+                    // Set customer spawn position at balcony
+                    if (position) {
+                        customer.position.copy(position);
+                        customer.position.z = -5.8;
+                    } else {
+                        customer.position.set(index*1.5-3,0.5,-5.8);
+                    }
                     customer.scale.set(0.1,0.1,0.1);
                     customer.rotation.y = -Math.PI/2;
 
-                    // pick random color from array colors
+                    // Pick random color
                     const randomColor = customerColors[Math.floor(Math.random() * customerColors.length)];
 
                     customer.traverse(function (node) {
@@ -184,15 +187,12 @@
                         node.castShadow = true;
                         node.receiveShadow = true;
 
-                        // Assign a random color to the kitten
                         node.material.color.set(randomColor);
                     }
                 });
 
-                // Add the kitten to the scene
                 sceneGraph.add(customer);
 
-                // Store the customer in the array for later updates
                 customers.push(customer);
             },
             undefined,
@@ -205,19 +205,26 @@
             const customerCubeGeometry = new THREE.BoxGeometry(0.5,0.5,0.5);
             const customerCubeMaterial = new THREE.MeshLambertMaterial({color: randomCubeColors,opacity: 0.5,transparent: true});
             const customerCube = new THREE.Mesh(customerCubeGeometry,customerCubeMaterial);
-            customerCube.position.set(index*1.5-3, 0.5, -5.2);
+
+            // Set customer cube position at balcony
+            if (position) {
+                customerCube.position.copy(position);
+            } else {
+                customerCube.position.set(index*1.5-3, 0.5, -5.2);
+            }
             customerCube.castShadow = true;
             customerCube.receiveShadow = true;
             customerCube.name = "customerCube";
             sceneGraph.add(customerCube);
 
+            customerCubes.push(customerCube);
             // Cube bounding box
+            /*
             const customerCubeBB =  new THREE.Box3().setFromObject(customerCube);
             const customerCubeHelper = new THREE.Box3Helper(customerCubeBB, 0x0000ff); // blue 
             customerCubeBB.expandByScalar(0.2);
+            */
             // SceneGraph.add(customerCubeHelper);
-
-            customerCubes.push(customerCube);
         }
         ///////////////////////////////////////////////////////////////////////
         // TEST CREATING PIZZA
@@ -378,7 +385,7 @@
                 testCubeHelper = new THREE.Box3Helper(testCubeBB, 0xff0000); // red
                 // sceneGraph.add(testCubeHelper);
                 
-                // Create a kitten
+                // Spawn player character (kitten)
                 const loader = new GLTFLoader();
                 loader.load(
                     'Kitten.glb',
@@ -416,11 +423,12 @@
                 ///////////////////////////////////////////////////////////////////////
                 //  CREATE RESTAURANT
                 ///////////////////////////////////////////////////////////////////////
-
+                // Create a texture loader
                 const textureLoader = new THREE.TextureLoader();
 
                 // Create a restaurant floor ground plane
-                const floorTexture = textureLoader.load('floor.jpg');
+                // Create floor
+                const floorTexture = textureLoader.load('textures/floor.jpg');
                 floorTexture.wrapS = THREE.RepeatWrapping;
                 floorTexture.wrapT = THREE.RepeatWrapping;
                 floorTexture.repeat.set(2, 2);
@@ -432,7 +440,8 @@
                 floor.receiveShadow = true;
                 sceneGraph.add(floor);
                 
-                const woodenFloorTexture = textureLoader.load('woodenFloor.jpg');
+                // Create wooden floor
+                const woodenFloorTexture = textureLoader.load('textures/woodenFloor.jpg');
                 woodenFloorTexture.wrapS = THREE.RepeatWrapping;
                 woodenFloorTexture.wrapT = THREE.RepeatWrapping;
                 woodenFloorTexture.repeat.set(2, 2);
@@ -448,27 +457,23 @@
                 const BoxMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(99,59,59)' });
                 const table = new THREE.Mesh(BoxGeometry, BoxMaterial);
                 sceneGraph.add(table);
-                // Set table position
+
                 table.position.set(0,0,-5.2);
 
-                // Add another table
                 const table2 = new THREE.Mesh(BoxGeometry,BoxMaterial);
                 sceneGraph.add(table2);
                 table2.position.set(0,0,5.3);
 
-                // Add another table
                 const table3 = new THREE.Mesh(BoxGeometry,BoxMaterial);
                 sceneGraph.add(table3);
                 table3.position.set(4.5,0,0);
                 table3.rotation.y = Math.PI/2;
 
-                // Add another table
                 const table4 = new THREE.Mesh(BoxGeometry,BoxMaterial);
                 sceneGraph.add(table4);
                 table4.position.set(-4.5,0,0);
                 table4.rotation.y = Math.PI/2;
 
-                // Set shadow property
                 table.castShadow = true;
                 table2.castShadow = true;
                 table3.castShadow = true;
@@ -476,19 +481,20 @@
 
                 // Creating the walls
                 const restaurantWallsGeometry = new THREE.BoxGeometry(13, 4 ,15);
-                const restaurantWallsTexture = textureLoader.load('wall.jpg');
+                const restaurantWallsTexture = textureLoader.load('textures/wall.jpg');
                 restaurantWallsTexture.wrapS = THREE.RepeatWrapping;
                 restaurantWallsTexture.wrapT = THREE.RepeatWrapping;
                 restaurantWallsTexture.repeat.set(3, 2);
                 // Improve texture quality
                 restaurantWallsTexture.anisotropy = 16;
                 restaurantWallsTexture.magFilter = THREE.LinearFilter;
+                //
                 const restaurantWallsMaterials = [
                     new THREE.MeshPhongMaterial({ map: restaurantWallsTexture, side: THREE.DoubleSide}), // right
                     new THREE.MeshPhongMaterial({ map: restaurantWallsTexture , side: THREE.DoubleSide}), // left
-                    new THREE.MeshPhongMaterial({ color: 'rgb(169,169,169)' , transparent: true, opacity: 0, side: THREE.DoubleSide}), // top
+                    new THREE.MeshPhongMaterial({ color: 'rgb(255,255,255)' , transparent: true, opacity: 0.1, depthWrite: false,side: THREE.DoubleSide}), // top
                     new THREE.MeshPhongMaterial({ color: 'rgb(169,169,169)' }), // bottom
-                    new THREE.MeshPhongMaterial({ color: 'rgb(255,255,255)' , transparent: true, opacity: 0.3}), // front
+                    new THREE.MeshPhongMaterial({ color: 'rgb(255,255,255)' , transparent: true, opacity: 0.1}), // front
                     new THREE.MeshPhongMaterial({ map: restaurantWallsTexture, side: THREE.DoubleSide })  // back
                 ];
                 const restaurantWalls = new THREE.Mesh(restaurantWallsGeometry, restaurantWallsMaterials);
@@ -496,24 +502,24 @@
                 restaurantWalls.receiveShadow = true;
                 
                 sceneGraph.add(restaurantWalls);
+                
+                // add door
+                const doorGeometry = new THREE.BoxGeometry(8, 2, 0.1);
+                const doorMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255, 255, 255)'});
+                const door = new THREE.Mesh(doorGeometry, doorMaterial);
+                door.position.set(0, 1,-7.5);
+                door.castShadow = true;
+                door.receiveShadow = true;
+                sceneGraph.add(door);
 
                 // Ilumination inside the restaurant
-
-                let lightRNumber = 4;
-                const lightRGroup = new THREE.Group();
-                const lightRLampGeometry = new THREE.SphereGeometry(0.2, 32, 16);
-                const lightRLampMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255, 255, 255)', transparent: true, opacity: 0.7, emissive: 'rgb(255, 255, 255)', emissiveIntensity: 1 });
-                const lightRLamp = new THREE.Mesh(lightRLampGeometry, lightRLampMaterial);
-                lightRLamp.castShadow = true;
-                //lightRGroup.add(lightRLamp);
-                
+                let lightRNumber = 4;  
                 const lightRSource = new THREE.PointLight('rgb(255, 255, 204)',10,10);
                 lightRSource.decay = 2;
                 lightRSource.castShadow = true;
-                lightRGroup.add(lightRSource);
                 
                 for(let i = 0; i < lightRNumber; i++){
-                    const lightRClone = lightRGroup.clone();
+                    const lightRClone = lightRSource.clone();
                     if(i == 0){
                         lightRClone.position.set(-3, 2, -3);
                     } else if(i == 1){
@@ -532,12 +538,12 @@
                 ///////////////////////////////////////////////////////////////////////
                 
                 // Create grass plane
-                const grassTexture = textureLoader.load('grass.jpg');
+                const grassTexture = textureLoader.load('textures/grass.jpg');
                 grassTexture.wrapS = THREE.RepeatWrapping;
                 grassTexture.wrapT = THREE.RepeatWrapping;
                 grassTexture.repeat.set(5, 5);
 
-                const grassGeometry = new THREE.BoxGeometry(50,50);
+                const grassGeometry = new THREE.BoxGeometry(60,60);
                 const grassMaterial = new THREE.MeshPhongMaterial({map: grassTexture, side: THREE.DoubleSide});
                 const grass = new THREE.Mesh(grassGeometry, grassMaterial);
                 sceneGraph.add(grass);
@@ -571,8 +577,21 @@
                 roadstripeR.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
                 roadstripeR.position.set(0,-0.45,-11);
 
+                // add side walk
+                const sideWalkTexture = textureLoader.load('textures/sidewalk.jpg');
+                sideWalkTexture.wrapS = THREE.RepeatWrapping;
+                sideWalkTexture.wrapT = THREE.RepeatWrapping;
+                sideWalkTexture.repeat.set(10, 1);
+                const sidewalkGeometry = new THREE.BoxGeometry(50,12,0.55);
+                const sidewalkMaterial = new THREE.MeshPhongMaterial({ map: sideWalkTexture, side: THREE.DoubleSide });
+                const sidewalk = new THREE.Mesh(sidewalkGeometry, sidewalkMaterial);
+                sceneGraph.add(sidewalk);
+                sidewalk.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+                sidewalk.position.set(0,-0.45,-13);
+
                 // add lamps
                 createLamp(sceneGraph);
+                
                 // Add car
                 //createCar(sceneGraph);
                 
@@ -759,8 +778,46 @@
                             console.log("right color");
                             score += 10;
 
+                            // Store the position
+                            const respawnPosition = customerCube.position.clone();
+
                             // Remove the customer cube
                             sceneElements.sceneGraph.remove(customerCube);
+
+                            // Remove the customer model
+                            const index = customerCubes.indexOf(customerCube);
+                            if (index > -1) {
+                                customerCubes.splice(index, 1);
+                                const customer = customers[index];
+                                if (customer) {
+                                    // Animate customer walking to table
+                                    let startZ = customer.position.z;
+                                    let endZ = -5.2; // Table position
+                                    let duration = 2000; // 2 seconds
+                                    let startTime = performance.now();
+
+                                    function animateWalk(now) {
+                                        let elapsed = now - startTime;
+                                        let t = Math.min(elapsed / duration, 1);
+                                        customer.position.z = startZ + (endZ - startZ) * t;
+                                        if (t < 1) {
+                                            requestAnimationFrame(animateWalk);
+                                        } else {
+                                            // After walking, remove customer and respawn
+                                            sceneElements.sceneGraph.remove(customer);
+                                            customers.splice(index, 1);
+                                            setTimeout(() => {
+                                                generateRandomCustomer(sceneElements.sceneGraph, index, respawnPosition);
+                                            }, 0);
+                                        }
+                                    }
+                                    requestAnimationFrame(animateWalk);
+                                } else {
+                                    setTimeout(() => {
+                                        generateRandomCustomer(sceneElements.sceneGraph, index, respawnPosition);
+                                    }, 2000);
+                                }
+                            }
 
                             // Respawn the test cube at its original position
                             testCube.position.set(1, 0.5, 3);
@@ -768,13 +825,6 @@
                             // change its color  to one of the food cubes
                             const randomFoodColors = CubeColors[Math.floor(Math.random() * CubeColors.length)];
                             testCube.material.color.set(randomFoodColors);
-                            // Remove the customer cube from the array
-                            const index = customerCubes.indexOf(customerCube);
-                            if (index > -1) {
-                                customerCubes.splice(index, 1);
-                            }
-                        } else {
-                            console.log("wrong color");
                         }
                     }
                 });

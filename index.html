@@ -718,135 +718,146 @@
         let kittenBB, kittenHelper;
         let customerCubeBB, customerCubeHelper;
 
-        function computeFrame(time) {
-            // Controling kitten with keyboard
+        function updateScoreUI() {
+            document.getElementById("score").textContent = score;
+        }
+
+        function handleKittenMovement() {
+            const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
+            if (!kitten) return;
+
+            if (keyD && kitten.position.x <= 3.5) {
+                kitten.rotation.y = 0;
+                kitten.translateX(kittenSpeed);
+            }
+            if (keyW && kitten.position.z >= -4.5) {
+                kitten.rotation.y = Math.PI / 2;
+                kitten.translateX(kittenSpeed);
+            }
+            if (keyA && kitten.position.x >= -3.5) {
+                kitten.rotation.y = -Math.PI;
+                kitten.translateX(kittenSpeed);
+            }
+            if (keyS && kitten.position.z <= 4.5) {
+                kitten.rotation.y = -Math.PI / 2;
+                kitten.translateX(kittenSpeed);
+            }
+        }
+
+        function updateBoundingBoxes() {
             const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
             const testCube = sceneElements.sceneGraph.getObjectByName("testCube");
-            document.getElementById("score").textContent = score;
 
             if (kitten) {
-                
-                if (keyD){
-                    kitten.rotation.y = 0;  // face right
-                    if(kitten.position.x <= 3.5)
-                            kitten.translateX(kittenSpeed);
-                }
-                if (keyW) {
-                    kitten.rotation.y = Math.PI / 2; // face forward
-                    if(kitten.position.z >= -4.5)
-                        kitten.translateX(kittenSpeed);
-                }
-                if (keyA) {
-                    kitten.rotation.y = -Math.PI;   // face left
-                    if(kitten.position.x >= -3.5)
-                        kitten.translateX(kittenSpeed);
-                }
-                if (keyS) {
-                    kitten.rotation.y = -Math.PI / 2;   // face back
-                    if(kitten.position.z <= 4.5)
-                        kitten.translateX(kittenSpeed);
-                }
-
-                // Update kitten bounding box
                 kittenBB.setFromObject(kitten);
                 kittenBB.expandByScalar(0.2);
                 kittenHelper.updateMatrixWorld(true);
             }
 
-            // Update test cube bounding box
             if (testCube) {
                 testCubeBB.setFromObject(testCube);
                 testCubeBB.expandByScalar(0.2);
-                testCubeHelper.updateMatrixWorld(true); // Update the matrix
+                testCubeHelper.updateMatrixWorld(true);
+            }
+        }
 
-                // Check for intersection with kitten
-                if (kitten && kittenBB.intersectsBox(testCubeBB) && keySpace) {
-                    const forward = new THREE.Vector3(1, 0.5, 0);
-                    forward.applyQuaternion(kitten.quaternion); // Rotate forward vector by kitten's rotation
-                    forward.normalize();
+        function handleTestCubeWithKitten() {
+            const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
+            const testCube = sceneElements.sceneGraph.getObjectByName("testCube");
 
-                    const offset = forward;
-                    testCube.position.copy(kitten.position.clone().add(offset));
-                }
+            if (!kitten || !testCube || !keySpace) return;
 
-                // Check if the test cube intersects with any customer customerCubes
-                customerCubes.forEach((customerCube) => {
-                    const customerCubeBB = new THREE.Box3().setFromObject(customerCube);
-                    if (testCubeBB.intersectsBox(customerCubeBB)) {
-                        console.log("testCube intersects with customerCube");
-                        if (testCube.material.color.getHex() === customerCube.material.color.getHex()) {
-                            console.log("right color");
-                            score += 10;
+            if (kittenBB.intersectsBox(testCubeBB)) {
+                const forward = new THREE.Vector3(1, 0.5, 0).applyQuaternion(kitten.quaternion).normalize();
+                testCube.position.copy(kitten.position.clone().add(forward));
+            }
+        }
 
-                            // Store the position
-                            const respawnPosition = customerCube.position.clone();
+        function handleTestCubeWithCustomers() {
+            const testCube = sceneElements.sceneGraph.getObjectByName("testCube");
+            if (!testCube) return;
 
-                            // Remove the customer cube
-                            sceneElements.sceneGraph.remove(customerCube);
+            customerCubes.forEach((customerCube) => {
+                const customerCubeBB = new THREE.Box3().setFromObject(customerCube);
+                if (!testCubeBB.intersectsBox(customerCubeBB)) return;
 
-                            // Remove the customer model
-                            const index = customerCubes.indexOf(customerCube);
-                            if (index > -1) {
-                                customerCubes.splice(index, 1);
-                                const customer = customers[index];
-                                if (customer) {
-                                    // Animate customer walking to table
-                                    let startZ = customer.position.z;
-                                    let endZ = -5.2; // Table position
-                                    let duration = 2000; // 2 seconds
-                                    let startTime = performance.now();
+                console.log("testCube intersects with customerCube");
 
-                                    function animateWalk(now) {
-                                        let elapsed = now - startTime;
-                                        let t = Math.min(elapsed / duration, 1);
-                                        customer.position.z = startZ + (endZ - startZ) * t;
-                                        if (t < 1) {
-                                            requestAnimationFrame(animateWalk);
-                                        } else {
-                                            // After walking, remove customer and respawn
-                                            sceneElements.sceneGraph.remove(customer);
-                                            customers.splice(index, 1);
-                                            setTimeout(() => {
-                                                generateRandomCustomer(sceneElements.sceneGraph, index, respawnPosition);
-                                            }, 0);
-                                        }
-                                    }
-                                    requestAnimationFrame(animateWalk);
-                                } else {
-                                    setTimeout(() => {
-                                        generateRandomCustomer(sceneElements.sceneGraph, index, respawnPosition);
-                                    }, 2000);
-                                }
-                            }
+                if (testCube.material.color.getHex() === customerCube.material.color.getHex()) {
+                    console.log("right color");
+                    score += 10;
 
-                            // Respawn the test cube at its original position
-                            testCube.position.set(1, 0.5, 3);
-                            testCubeBB.setFromObject(testCube); // Update bounding box
-                            // change its color  to one of the food cubes
-                            const randomFoodColors = CubeColors[Math.floor(Math.random() * CubeColors.length)];
-                            testCube.material.color.set(randomFoodColors);
+                    const respawnPosition = customerCube.position.clone();
+                    sceneElements.sceneGraph.remove(customerCube);
+
+                    const index = customerCubes.indexOf(customerCube);
+                    if (index > -1) {
+                        customerCubes.splice(index, 1);
+                        const customer = customers[index];
+
+                        if (customer) {
+                            animateCustomerToTable(customer, index, respawnPosition);
+                        } else {
+                            setTimeout(() => {
+                                generateRandomCustomer(sceneElements.sceneGraph, index, respawnPosition);
+                            }, 2000);
                         }
+
+                        // Reset and recolor test cube
+                        testCube.position.set(1, 0.5, 3);
+                        testCubeBB.setFromObject(testCube);
+                        const randomFoodColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
+                        testCube.material.color.set(randomFoodColor);
                     }
-                });
+                }
+            });
+        }
+
+        function animateCustomerToTable(customer, index, respawnPosition) {
+            const startZ = customer.position.z;
+            const endZ = -9;
+            const duration = 1000;
+            const startTime = performance.now();
+
+            function animateWalk(now) {
+                const elapsed = now - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                customer.position.z = startZ + (endZ - startZ) * t;
+
+                if (t < 1) {
+                    requestAnimationFrame(animateWalk);
+                } else {
+                    sceneElements.sceneGraph.remove(customer);
+                    customers.splice(index, 1);
+                    generateRandomCustomer(sceneElements.sceneGraph, index, respawnPosition);
+                }
             }
 
-            // Camera follows the kitten
-            if (kitten) {
-                const kittenPosition = kitten.position.clone();
-                const cameraPosition = kittenPosition.add(cameraOffset);
+            requestAnimationFrame(animateWalk);
+        }
 
-                sceneElements.camera.position.copy(cameraPosition);
-                sceneElements.camera.lookAt(kitten.position);
-            }
+        function updateCameraFollow() {
+            const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
+            if (!kitten) return;
 
-            // Rendering
+            const cameraPosition = kitten.position.clone().add(cameraOffset);
+            sceneElements.camera.position.copy(cameraPosition);
+            sceneElements.camera.lookAt(kitten.position);
+        }
+
+        function computeFrame(time) {
+            updateScoreUI();
+            handleKittenMovement();
+            updateBoundingBoxes();
+            handleTestCubeWithKitten();
+            handleTestCubeWithCustomers();
+            updateCameraFollow();
+            
+            // Rendering and controls
             helper.render(sceneElements);
-
-            // NEW --- Update control of the camera
             sceneElements.control.update();
 
-            // Animation
-            // Call for the next frame
+            // Loop
             requestAnimationFrame(computeFrame);
         }
 

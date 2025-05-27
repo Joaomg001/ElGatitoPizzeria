@@ -485,16 +485,12 @@
                 restaurantWallsTexture.wrapS = THREE.RepeatWrapping;
                 restaurantWallsTexture.wrapT = THREE.RepeatWrapping;
                 restaurantWallsTexture.repeat.set(3, 2);
-                // Improve texture quality
-                restaurantWallsTexture.anisotropy = 16;
-                restaurantWallsTexture.magFilter = THREE.LinearFilter;
-                //
                 const restaurantWallsMaterials = [
                     new THREE.MeshPhongMaterial({ map: restaurantWallsTexture, side: THREE.DoubleSide}), // right
                     new THREE.MeshPhongMaterial({ map: restaurantWallsTexture , side: THREE.DoubleSide}), // left
-                    new THREE.MeshPhongMaterial({ color: 'rgb(255,255,255)' , transparent: true, opacity: 0.1, depthWrite: false,side: THREE.DoubleSide}), // top
-                    new THREE.MeshPhongMaterial({ color: 'rgb(169,169,169)' }), // bottom
-                    new THREE.MeshPhongMaterial({ color: 'rgb(255,255,255)' , transparent: true, opacity: 0.1}), // front
+                    new THREE.MeshPhongMaterial({ color: 'rgb(255,255,255)' , transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide}), // top
+                    new THREE.MeshPhongMaterial({ color: 'rgb(255,255,255)' }), // bottom
+                    new THREE.MeshPhongMaterial({ color: 'rgb(255,255,255)' , transparent: true, opacity: 0}), // front
                     new THREE.MeshPhongMaterial({ map: restaurantWallsTexture, side: THREE.DoubleSide })  // back
                 ];
                 const restaurantWalls = new THREE.Mesh(restaurantWallsGeometry, restaurantWallsMaterials);
@@ -504,10 +500,14 @@
                 sceneGraph.add(restaurantWalls);
                 
                 // add door
-                const doorGeometry = new THREE.BoxGeometry(8, 2, 0.1);
-                const doorMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255, 255, 255)'});
+                const doorTexture = textureLoader.load('textures/door.jpg');
+                doorTexture.wrapS = THREE.RepeatWrapping;
+                doorTexture.wrapT = THREE.RepeatWrapping;
+                doorTexture.repeat.set(15,1);
+                const doorGeometry = new THREE.BoxGeometry(8, 1.7, 0.2);
+                const doorMaterial = new THREE.MeshPhongMaterial({ map: doorTexture, side: THREE.DoubleSide });
                 const door = new THREE.Mesh(doorGeometry, doorMaterial);
-                door.position.set(0, 1,-7.5);
+                door.position.set(0, 0.85,-7.5);
                 door.castShadow = true;
                 door.receiveShadow = true;
                 sceneGraph.add(door);
@@ -593,7 +593,7 @@
                 createLamp(sceneGraph);
                 
                 // Add car
-                //createCar(sceneGraph);
+                createCar(sceneGraph);
                 
             }
         };
@@ -718,10 +718,12 @@
         let kittenBB, kittenHelper;
         let customerCubeBB, customerCubeHelper;
 
+        // Update score UI
         function updateScoreUI() {
             document.getElementById("score").textContent = score;
         }
 
+        // Handle kitten movement
         function handleKittenMovement() {
             const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
             if (!kitten) return;
@@ -744,6 +746,7 @@
             }
         }
 
+        // Update bounding boxes for kitten and test cube
         function updateBoundingBoxes() {
             const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
             const testCube = sceneElements.sceneGraph.getObjectByName("testCube");
@@ -761,6 +764,7 @@
             }
         }
 
+        // Handle test cube interaction with kitten and customers
         function handleTestCubeWithKitten() {
             const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
             const testCube = sceneElements.sceneGraph.getObjectByName("testCube");
@@ -773,6 +777,7 @@
             }
         }
 
+        // Handle test cube interaction with customer cubes
         function handleTestCubeWithCustomers() {
             const testCube = sceneElements.sceneGraph.getObjectByName("testCube");
             if (!testCube) return;
@@ -796,7 +801,7 @@
                         const customer = customers[index];
 
                         if (customer) {
-                            animateCustomerToTable(customer, index, respawnPosition);
+                            animateCustomerLeave(customer, index, respawnPosition);
                         } else {
                             setTimeout(() => {
                                 generateRandomCustomer(sceneElements.sceneGraph, index, respawnPosition);
@@ -813,7 +818,8 @@
             });
         }
 
-        function animateCustomerToTable(customer, index, respawnPosition) {
+        // Animate custommer leaving
+        function animateCustomerLeave(customer, index, respawnPosition) {
             const startZ = customer.position.z;
             const endZ = -9;
             const duration = 1000;
@@ -836,6 +842,7 @@
             requestAnimationFrame(animateWalk);
         }
 
+        // Update the camera position following the kitten
         function updateCameraFollow() {
             const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
             if (!kitten) return;

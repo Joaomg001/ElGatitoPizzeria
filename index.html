@@ -944,6 +944,9 @@
             }
         }
 
+        ///////////////////////////////////////////////////////////////////////
+        // Overlays
+        ///////////////////////////////////////////////////////////////////////
 
         // GameOver Overlay
         function showGameOverOverlay() {
@@ -985,6 +988,30 @@
                 </div>
             `;
         }
+
+        const hints = [
+            "Hold SpaceBar to pick up pizzas.",
+            "Deliver the right pizza to the right customer.",
+            "Use W, A, S, D to move.",
+            "When close to the bell press E to reset the pizzas.",
+            "Try to deliver pizzas before time runs out! (2 minutes)"
+        ];
+
+        let currentHintIndex = 0;
+
+        function showNextHint() {
+            const hintMenu = document.getElementById('hintMenu');
+            if (hintMenu) {
+                hintMenu.innerHTML = `<b>Hint:</b> ${hints[currentHintIndex]}`;
+                currentHintIndex = (currentHintIndex + 1) % hints.length;
+            }
+        }
+
+        // Cycle through hints
+        window.addEventListener('DOMContentLoaded', () => {
+            showNextHint();
+            setInterval(showNextHint, 5000);
+        });
 
         function computeFrame(time) {
             let deltaTime = (time - lastTime) / 1000;
@@ -1130,6 +1157,9 @@
             <hr style="margin: 8px 0; border-color: rgba(0,0,0,0.1);">
             <div style="font-size: 1.1em;"><b>Time: </b><span id="timer">0m 0s</span></div>
         </div>
+    </div>
+        <div id="hintMenu" style="position: fixed; left: 15px; bottom: 15px; background: rgba(255,255,200,0.92); color: #333; padding: 14px 22px; border-radius: 10px; font-family: Arial, sans-serif; font-size: 1.1em; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 20;">
+        <b>Hint:</b>
     </div>
 </body>
 

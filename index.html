@@ -665,7 +665,7 @@
 
         const cars = [];
         const carLanes = [-14,-12]; // Lanes
-        const carSpeedRange = [0.04*2, 0.08*2];
+        const carSpeedRange = [10, 14];
         
         function spawnCar() {
             //stop spawing if game ended
@@ -744,7 +744,7 @@
         ///////////////////////////////////////////////////////////////////////
         
         // variables
-        let kittenSpeed = 0.05*2;
+        let kittenSpeed = 10;
         let keyD = false, keyA = false, keyS = false, keyW = false, keyE = false, keySpace = false;
         const cameraOffset = new THREE.Vector3(0, 10, 10);
         let score = 0;
@@ -753,6 +753,7 @@
         let heldPizzaBB = null;
         let lastButtonPress = 0;
         let gameEnded = false;
+        let lastTime = performance.now();
         // Bounding boxes
         let kittenBB, kittenHelper;
 
@@ -763,25 +764,27 @@
         }
 
         // Handle kitten movement
-        function handleKittenMovement() {
+        function handleKittenMovement(deltaTime) {
             const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
             if (!kitten) return;
 
+            const distance = kittenSpeed * deltaTime;
+
             if (keyD && kitten.position.x <= 3.5) {
                 kitten.rotation.y = 0;
-                kitten.translateX(kittenSpeed);
+                kitten.translateX(distance);
             }
             if (keyW && kitten.position.z >= -4.5) {
                 kitten.rotation.y = Math.PI / 2;
-                kitten.translateX(kittenSpeed);
+                kitten.translateX(distance);
             }
             if (keyA && kitten.position.x >= -3.5) {
                 kitten.rotation.y = -Math.PI;
-                kitten.translateX(kittenSpeed);
+                kitten.translateX(distance);
             }
             if (keyS && kitten.position.z <= 4.5) {
                 kitten.rotation.y = -Math.PI / 2;
-                kitten.translateX(kittenSpeed);
+                kitten.translateX(distance);
             }
         }
 
@@ -928,10 +931,10 @@
         }
 
         // Animate cars moving
-        function animateCars() {
+        function animateCars(deltaTime) {
             for (let i = cars.length - 1; i >= 0; i--) {
                 const car = cars[i];
-                car.position.x += car.userData.speed * car.userData.direction;
+                car.position.x += car.userData.speed * car.userData.direction * deltaTime;
 
                 if ((car.userData.direction === 1 && car.position.x > 27) ||
                     (car.userData.direction === -1 && car.position.x < -27)) {
@@ -940,6 +943,7 @@
                 }
             }
         }
+
 
         // GameOver Overlay
         function showGameOverOverlay() {
@@ -983,6 +987,10 @@
         }
 
         function computeFrame(time) {
+            let deltaTime = (time - lastTime) / 1000;
+            deltaTime = Math.min(deltaTime, 0.05);    // cap DeltaTime
+            lastTime = time;
+
             if (!gameEnded && (score >= 500 || elapsedSeconds >= 120)) {
                 gameEnded = true;
                 clearInterval(timerInterval);
@@ -991,19 +999,17 @@
             }
 
             updateScoreUI();
-            handleKittenMovement();
+            handleKittenMovement(deltaTime);
             updateBoundingBoxes();
             handlePizzaWithKitten();
             handlePizzaWithCustomers();
             updateCameraFollow();
             handleButtonInteraction();
-            animateCars();
+            animateCars(deltaTime);
 
-            // Rendering and controls
             helper.render(sceneElements);
             sceneElements.control.update();
 
-            // Loop
             requestAnimationFrame(computeFrame);
         }
 

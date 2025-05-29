@@ -55,11 +55,11 @@
                 // Add ambient light
                 const ambientLight = new THREE.AmbientLight('rgb(255, 255, 255)', 0.2);
                 sceneElements.sceneGraph.add(ambientLight);
-                /*
+
                 // Add spotlight (with shadows)
-                const light_1 = new THREE.SpotLight('rgb(255, 255, 255)', 25);
+                const light_1 = new THREE.SpotLight('rgb(172,172,193)', 5);
                 light_1.decay = 1;
-                light_1.position.set(-5, 8, 0);
+                light_1.position.set(-18, 22, 0);
                 sceneElements.sceneGraph.add(light_1);
 
                 // Setup shadow properties for the spotlight
@@ -69,7 +69,9 @@
 
                 // Give a name to the spot light
                 light_1.name = "light 1";
-                */
+                light_1.target.position.set(0, 0, 0);
+                sceneElements.sceneGraph.add(light_1.target);
+                
                 // Create renderer (with shadow map)
                 const renderer = new THREE.WebGLRenderer({ antialias: true });
                 sceneElements.renderer = renderer;
@@ -150,10 +152,12 @@
                 if (pizza) sceneElements.sceneGraph.remove(pizza);
             });
             pizzasA.length = 0;
-
-            for (let i = 0; i < 5; i++) {
-                createPizza(sceneElements.sceneGraph, i, false);
-            }
+            
+            setTimeout(() => {
+                for (let i = 0; i < 5; i++) {
+                    createPizza(sceneElements.sceneGraph, i, false);
+                }
+            }, 250);
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -390,28 +394,19 @@
                 const BoxGeometry = new THREE.BoxGeometry(10, 0.5, 1);
                 const BoxMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(99,59,59)' });
                 const table = new THREE.Mesh(BoxGeometry, BoxMaterial);
-                sceneGraph.add(table);
-
-                table.position.set(0,0,-5.2);
-
-                const table2 = new THREE.Mesh(BoxGeometry,BoxMaterial);
-                sceneGraph.add(table2);
-                table2.position.set(0,0,5.3);
-
-                const table3 = new THREE.Mesh(BoxGeometry,BoxMaterial);
-                sceneGraph.add(table3);
-                table3.position.set(4.5,0,0);
-                table3.rotation.y = Math.PI/2;
-
-                const table4 = new THREE.Mesh(BoxGeometry,BoxMaterial);
-                sceneGraph.add(table4);
-                table4.position.set(-4.5,0,0);
-                table4.rotation.y = Math.PI/2;
-
-                table.castShadow = true;
-                table2.castShadow = true;
-                table3.castShadow = true;
-                table4.castShadow = true;
+                const tablePositions = [
+                    { x: 0, y: 0, z: -5.2, ry: 0 },
+                    { x: 0, y: 0, z: 5.3, ry: 0 },
+                    { x: 4.5, y: 0, z: 0, ry: Math.PI / 2 },
+                    { x: -4.5, y: 0, z: 0, ry: Math.PI / 2 }
+                ];
+                tablePositions.forEach(pos => {
+                    const table = new THREE.Mesh(BoxGeometry, BoxMaterial);
+                    table.position.set(pos.x, pos.y, pos.z);
+                    table.rotation.y = pos.ry;
+                    table.castShadow = true;
+                    sceneGraph.add(table);
+                });
 
                 // Create walls
                 const restaurantWallsGeometry = new THREE.BoxGeometry(13, 4 ,15);
@@ -469,28 +464,35 @@
                 }
 
                 // Create bell
+                const bellGroup = new THREE.Group();
+
                 const buttonGeometry = new THREE.CylinderGeometry(0.2, 0.4, 0.1, 32);
                 const buttonMaterial = new THREE.MeshPhongMaterial({ color: 'black' });
                 const resetButton = new THREE.Mesh(buttonGeometry, buttonMaterial);
-                const buttonaGeometry = new THREE.SphereGeometry(0.3,32,16, 0, Math.PI * 2, 0, Math.PI / 2);
-                const buttonaMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255,215,0)' });
-                const bell = new THREE.Mesh(buttonaGeometry, buttonaMaterial);
+
+                const bellGeometry = new THREE.SphereGeometry(0.3,32,16, 0, Math.PI * 2, 0, Math.PI / 2);
+                const bellMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255,215,0)' });
+                const bell = new THREE.Mesh(bellGeometry, bellMaterial);
+
                 const topGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.1, 32);
                 const topMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(160,160,160)' });
                 const topButton = new THREE.Mesh(topGeometry, topMaterial);
-                resetButton.position.set(-4.5, 0.4, 0);
-                bell.position.set(-4.5, 0.5, 0);
-                topButton.position.set(-4.5, 0.8, 0);
+
+                resetButton.position.set(0, 0, 0);
+                bell.position.set(0, 0.1, 0);
+                topButton.position.set(0, 0.4, 0);
+
                 resetButton.name = "resetButton";
                 resetButton.castShadow = true;
-                resetButton.receiveShadow = true;
                 bell.castShadow = true;
-                bell.receiveShadow = true;
                 topButton.castShadow = true;
+                resetButton.receiveShadow = true;
+                bell.receiveShadow = true;
                 topButton.receiveShadow = true;
-                sceneGraph.add(resetButton);
-                sceneGraph.add(bell);
-                sceneGraph.add(topButton);
+
+                bellGroup.add(resetButton, bell, topButton);
+                bellGroup.position.set(-4.5, 0.4, 0);
+                sceneGraph.add(bellGroup);
 
                 ///////////////////////////////////////////////////////////////////////
                 //  CREATE OUTSIDE SCENERY
@@ -664,7 +666,7 @@
         const cars = [];
         const carLanes = [-14,-12]; // Lanes
         const carSpeedRange = [0.04, 0.08];
-
+        
         function spawnCar() {
             let direction = 0;
             if (cars.length >= 2) return; 
@@ -687,11 +689,11 @@
             cars.push(car);
         }
         
-        // Spawn cars every 1.8 seconds
+        // Spawn cars every second
         setInterval(() => {
             spawnCar();
             console.log("Cars on the road: " + cars.length);
-        }, 2000);
+        }, 1000);
                 
         ///////////////////////////////////////////////////////////////////////
         // TIMER FUNCTIONALITY
@@ -700,6 +702,7 @@
         // Timer variables
         let startTime;
         let timerInterval;
+        let elapsedSeconds = 0;
 
         // Function to start the timer
         function startTimer() {
@@ -709,11 +712,12 @@
                 let timeDiff = currentTime - startTime;
                 let seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
                 let minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                elapsedSeconds = Math.floor(timeDiff / 1000);
                 document.getElementById("timer").innerHTML = minutes + "m " + seconds + "s ";
             }, 1000);
         }
 
-        // Handle Start Button
+        // Start buttom functionality
         window.addEventListener('DOMContentLoaded', () => {
             const startOverlay = document.getElementById('startOverlay');
             const startButton = document.getElementById('startButton');
@@ -746,6 +750,7 @@
         let heldPizza = null;
         let heldPizzaBB = null;
         let lastButtonPress = 0;
+        let gameEnded = false;
         // Bounding boxes
         let kittenBB, kittenHelper;
 
@@ -913,7 +918,6 @@
             const buttonBB = new THREE.Box3().setFromObject(button);
             buttonBB.expandByScalar(0.2);
 
-            // If kitten is close and player presses Space, with cooldown
             const now = performance.now();
             if (kittenBB.intersectsBox(buttonBB) && keyE && (now - lastButtonPress > 500)) {
                 newPizzas();
@@ -935,7 +939,55 @@
             }
         }
 
+        // GameOver Overlay
+        function showGameOverOverlay() {
+            let overlay = document.getElementById('gameOverOverlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'gameOverOverlay';
+                overlay.style.position = 'fixed';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100vw';
+                overlay.style.height = '100vh';
+                overlay.style.background = 'rgba(0,0,0,0.85)';
+                overlay.style.display = 'flex';
+                overlay.style.flexDirection = 'column';
+                overlay.style.justifyContent = 'center';
+                overlay.style.alignItems = 'center';
+                overlay.style.zIndex = '1000';
+                overlay.style.color = 'white';
+                overlay.style.fontSize = '2.5em';
+                overlay.style.fontFamily = 'Times New Roman';
+                overlay.style.backgroundImage = "url('textures/background.jpg')";
+                overlay.style.backgroundSize = 'cover';
+                overlay.style.backgroundPosition = 'center';
+                
+                document.body.appendChild(overlay);
+            }
+
+            // Get time from timer
+            const timerText = document.getElementById("timer").textContent;
+            overlay.innerHTML = `
+                <div style="background:rgba(30,30,30,0.95);padding:40px 60px;border-radius:20px;box-shadow:0 0 30px #000; display: flex; flex-direction: column; align-items: center;">
+                    <h1 style="margin-bottom: 20px;">All pizzas delivered!!</h1>
+                    <div style="margin-bottom: 15px;">Final Score: <b>${score}</b></div>
+                    <div style="margin-bottom: 15px;">Time: <b>${timerText}</b></div>
+                    <button onclick="location.reload()" style="margin-top: 30px; font-size: 1.2em; padding: 0.5em 1.5em; border-radius: 10px; cursor: pointer; background-color: #ffc107; border: 2px solid #e0a800; color: #402008; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                        Restart Game
+                    </button>
+                </div>
+            `;
+        }
+
         function computeFrame(time) {
+            if (!gameEnded && (score >= 500 || elapsedSeconds >= 120)) {
+                gameEnded = true;
+                clearInterval(timerInterval);
+                showGameOverOverlay();
+                return;
+            }
+
             updateScoreUI();
             handleKittenMovement();
             updateBoundingBoxes();
@@ -1061,7 +1113,7 @@
         <ul style="list-style: circle; padding-left: 15px;">
             <li style="margin-bottom: 5px;"><b>Movement: </b>A,W,S,D </li>
             <li style="margin-bottom: 5px;"><b>PickUp: </b> SpaceBar (hold)</li>
-            <li style="margin-bottom: 5px;"><b>Press button: </b> E (New Pizzas)</li>
+            <li style="margin-bottom: 5px;"><b>Press bell: </b> E (New Pizzas)</li>
         </ul>
     </div>
     <div id="dataMenu" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.85); padding: 15px; border-radius: 8px; font-family: Arial, sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-align: right; display:none;">

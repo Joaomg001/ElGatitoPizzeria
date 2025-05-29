@@ -554,7 +554,7 @@
                 roadstripeR.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
                 roadstripeR.position.set(0,-0.45,-11);
 
-                // add side walk
+                // Add side walk
                 const sideWalkTexture = textureLoader.load('textures/sidewalk.jpg');
                 sideWalkTexture.wrapS = THREE.RepeatWrapping;
                 sideWalkTexture.wrapT = THREE.RepeatWrapping;
@@ -566,53 +566,39 @@
                 sidewalk.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
                 sidewalk.position.set(0,-0.45,-13);
 
-                // add lamps
-                createLamp(sceneGraph);
-                
-                // Add car
-                //createCar(sceneGraph);
-                
+                // Create lamp posts
+                let numLamps = 6;
+                const lampGroup = new THREE.Group();
+                const postGeometry = new THREE.CylinderGeometry(0.2,0.2,6,32);
+                const postMaterial = new THREE.MeshPhongMaterial({color: 'rgb(0,0,0)'});
+                const post = new THREE.Mesh(postGeometry,postMaterial);
+                lampGroup.add(post);
+
+                const lampCapGeomety = new THREE.SphereGeometry(0.5,32,16);
+                const lampCapMaterial = new THREE.MeshPhongMaterial({color: 'rgb(255, 162, 57)', transparent: true, opacity: 0.7, emissive: 'rgb(255, 162, 57)', emissiveIntensity: 1});
+                const lampCap = new THREE.Mesh(lampCapGeomety,lampCapMaterial);
+                lampCap.position.set(0,3.4,0);
+                lampGroup.add(lampCap);
+
+                // Light coming from the lamp
+                const lampLight = new THREE.PointLight('rgb(255, 162, 57)', 10, 10);
+                lampLight.castShadow = true;
+                lampLight.decay = 0.7;
+                lampLight.position.set(0, 3, 0);
+                lampGroup.add(lampLight);
+                lampGroup.position.set(0,0,-10);
+                lampGroup.castShadow = true;
+                lampGroup.receiveShadow = true;
+                lampGroup.receiveShadow = true;
+
+                // Add multiple Lamps to the scene
+                for(let i = 0; i < numLamps; i++){
+                    const lampClone = lampGroup.clone();
+                    lampClone.position.set(i*10-20,0,-10);  
+                    sceneGraph.add(lampClone);
+                }
             }
         };
-
-        ///////////////////////////////////////////////////////////////////////
-        //  LAMP POSTS
-        ///////////////////////////////////////////////////////////////////////
-
-        function createLamp(sceneGraph){
-            let numLamps = 6;
-            const lampGroup = new THREE.Group();
-            const postGeometry = new THREE.CylinderGeometry(0.2,0.2,6,32);
-            const postMaterial = new THREE.MeshPhongMaterial({color: 'rgb(0,0,0)'});
-            const post = new THREE.Mesh(postGeometry,postMaterial);
-            lampGroup.add(post);
-
-            const lampCapGeomety = new THREE.SphereGeometry(0.5,32,16);
-            const lampCapMaterial = new THREE.MeshPhongMaterial({color: 'rgb(255, 162, 57)', transparent: true, opacity: 0.7, emissive: 'rgb(255, 162, 57)', emissiveIntensity: 1});
-            const lampCap = new THREE.Mesh(lampCapGeomety,lampCapMaterial);
-            lampCap.position.set(0,3.4,0);
-            lampGroup.add(lampCap);
-
-            // Light coming from the lamp
-            const lampLight = new THREE.PointLight('rgb(255, 162, 57)', 10, 10);
-            lampLight.castShadow = true;
-            lampLight.decay = 0.7;
-            lampLight.position.set(0, 3, 0);
-            lampGroup.add(lampLight);
-            lampGroup.position.set(0,0,-10);
-            lampGroup.castShadow = true;
-            lampGroup.receiveShadow = true;
-            lampGroup.receiveShadow = true;
-
-            // Add multiple Lamps to the scene
-            for(let i = 0; i < numLamps; i++){
-                const lampClone = lampGroup.clone();
-                lampClone.position.set(i*10-20,0,-10);  
-                sceneGraph.add(lampClone);
-            }
-
-
-        }
 
         ///////////////////////////////////////////////////////////////////////
         //  CREATE A CAR
@@ -659,10 +645,44 @@
                 carGroup.add(wheel);
             });
 
+            // Headlights
+            const headlightGeometry = new THREE.CylinderGeometry(0.1,0.05, 0.2,32);
+            const headlightMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255, 255, 0)' , transparent: true, opacity: 0.8, emissive: 'rgb(255, 255, 0)', emissiveIntensity: 1});
+            const headlight = new THREE.Mesh(headlightGeometry, headlightMaterial);
+            headlight.rotation.z = -Math.PI / 2;
+            const headlightClone = headlight.clone();
+            headlight.position.set(0.7, 0.3, 0.3);
+            headlightClone.position.set(0.7, 0.3, -0.3);
+            carGroup.add(headlight);
+            carGroup.add(headlightClone);
+
+            // Iluminate headlights
+            const headlightSource = new THREE.SpotLight('rgb(255, 255, 0)', 15, 100);
+            headlightSource.castShadow = true;
+            headlightSource.angle = Math.PI / 3.5;
+            headlightSource.penumbra = 0.5;
+            headlightSource.decay = 1;
+            const headlightSourceClone = headlightSource.clone();
+            headlightSource.position.set(0.3, 0.8, 0.3);
+            headlightSourceClone.position.set(0.3, 0.8, -0.3);
+
+            // Set target
+            const headlightTarget = new THREE.Object3D();
+            const headlightTarget2 = new THREE.Object3D();
+            headlightTarget.position.set(0.8, 0.8, 0.3);
+            headlightTarget2.position.set(0.8, 0.8, -0.3);
+            carGroup.add(headlightTarget);
+            carGroup.add(headlightTarget2);
+            headlightSource.target = headlightTarget;
+            headlightSourceClone.target = headlightTarget2;
+
+            carGroup.add(headlightSource);
+            carGroup.add(headlightSourceClone);
+
             // Add car to the scene
             sceneGraph.add(carGroup);
         }
-
+                
         ///////////////////////////////////////////////////////////////////////
         // Timer functionality
         ///////////////////////////////////////////////////////////////////////

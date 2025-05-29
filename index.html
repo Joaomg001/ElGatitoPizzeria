@@ -100,17 +100,6 @@
         const customerColors = ["#a88532", "#a85532", "#000000", "#ffffff", "#253745"];
 
         ///////////////////////////////////////////////////////////////////////
-        // Change the color of food cubes
-        ///////////////////////////////////////////////////////////////////////
-        function updateCubeColors() {
-            cubesFood.forEach((cube) => {
-                const newColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
-                cube.material.color.set(newColor);
-                console.log(cube.id, newColor);
-            });
-        }
-
-        ///////////////////////////////////////////////////////////////////////
         // Function to generate customer
         ///////////////////////////////////////////////////////////////////////
 
@@ -154,12 +143,25 @@
         }
 
         ///////////////////////////////////////////////////////////////////////
-        // CREATING PIZZA
+        // GENERATE NEW PIZZAS
+        ///////////////////////////////////////////////////////////////////////
+        function newPizzas() {
+            pizzasA.forEach(pizza => {
+                if (pizza) sceneElements.sceneGraph.remove(pizza);
+            });
+            pizzasA.length = 0;
+
+            for (let i = 0; i < 5; i++) {
+                createPizza(sceneElements.sceneGraph, i, false);
+            }
+        }
+
+        ///////////////////////////////////////////////////////////////////////
+        // CREATING PIZZAS
         ///////////////////////////////////////////////////////////////////////
         const pizzasA = [];
         const pizzasCustomer = [];
         let pizzaBB,pizzaHelper;            // Pizza BB
-        let pizzasCustomerBB,pizzasCustomerHelper; // Customer pizzas BB
         
         function createPizza(sceneGraph,index,belongsToCustomer, position = null) {
             const scale = 0.2;
@@ -278,7 +280,7 @@
             }
 
             
-            if(belongsToCustomer == false){
+            if(belongsToCustomer == false){ // Pizzas on the table
                 pizzaGroup.position.set(index*1.5-3, 0.3, 5.2);
                 // TESTING PIZZA
                 pizzaBB = new THREE.Box3().setFromObject(pizzaGroup);
@@ -288,16 +290,16 @@
                 // ENDS HERE
                 sceneGraph.add(pizzaGroup);
                 pizzasA.push(pizzaGroup);
-            }else if(belongsToCustomer == true){
+            }else if(belongsToCustomer == true){ // Pizzas for customers
                 if (position) {
                     pizzaGroup.position.copy(position);
-                    pizzaGroup.position.y = 0.3; // on table
+                    pizzaGroup.position.y = 0.3;
                     pizzaGroup.position.z = -5.2;
                 } else {
                     pizzaGroup.position.set(index*1.5-3, 0.3, -5.2);
                 }
                 sceneGraph.add(pizzaGroup);
-                pizzasCustomer[index] = pizzaGroup; // assign at index
+                pizzasCustomer[index] = pizzaGroup;
             }
         }
         
@@ -465,6 +467,31 @@
                     lightRClone.receiveShadow = true;
                     sceneGraph.add(lightRClone);
                 }
+
+                // Create bell
+                const buttonGeometry = new THREE.CylinderGeometry(0.2, 0.4, 0.1, 32);
+                const buttonMaterial = new THREE.MeshPhongMaterial({ color: 'black' });
+                const resetButton = new THREE.Mesh(buttonGeometry, buttonMaterial);
+                const buttonaGeometry = new THREE.SphereGeometry(0.3,32,16, 0, Math.PI * 2, 0, Math.PI / 2);
+                const buttonaMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255,215,0)' });
+                const bell = new THREE.Mesh(buttonaGeometry, buttonaMaterial);
+                const topGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.1, 32);
+                const topMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(160,160,160)' });
+                const topButton = new THREE.Mesh(topGeometry, topMaterial);
+                resetButton.position.set(-4.5, 0.4, 0);
+                bell.position.set(-4.5, 0.5, 0);
+                topButton.position.set(-4.5, 0.8, 0);
+                resetButton.name = "resetButton";
+                resetButton.castShadow = true;
+                resetButton.receiveShadow = true;
+                bell.castShadow = true;
+                bell.receiveShadow = true;
+                topButton.castShadow = true;
+                topButton.receiveShadow = true;
+                sceneGraph.add(resetButton);
+                sceneGraph.add(bell);
+                sceneGraph.add(topButton);
+
                 ///////////////////////////////////////////////////////////////////////
                 //  CREATE OUTSIDE SCENERY
                 ///////////////////////////////////////////////////////////////////////
@@ -667,7 +694,7 @@
         }, 2000);
                 
         ///////////////////////////////////////////////////////////////////////
-        // Timer functionality
+        // TIMER FUNCTIONALITY
         ///////////////////////////////////////////////////////////////////////
 
         // Timer variables
@@ -712,15 +739,15 @@
         
         // variables
         let kittenSpeed = 0.05;
-        let keyD = false, keyA = false, keyS = false, keyW = false, keySpace = false;
+        let keyD = false, keyA = false, keyS = false, keyW = false, keyE = false, keySpace = false;
         const cameraOffset = new THREE.Vector3(0, 10, 10);
         let score = 0;
         let gameStart = false;
         let heldPizza = null;
         let heldPizzaBB = null;
+        let lastButtonPress = 0;
         // Bounding boxes
         let kittenBB, kittenHelper;
-        let customerCubeBB, customerCubeHelper;
 
 
         // Update score UI
@@ -877,6 +904,23 @@
             sceneElements.camera.lookAt(kitten.position);
         }
 
+        // Interaction with reset button
+        function handleButtonInteraction() {
+            const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
+            const button = sceneElements.sceneGraph.getObjectByName("resetButton");
+            if (!kitten || !button) return;
+
+            const buttonBB = new THREE.Box3().setFromObject(button);
+            buttonBB.expandByScalar(0.2);
+
+            // If kitten is close and player presses Space, with cooldown
+            const now = performance.now();
+            if (kittenBB.intersectsBox(buttonBB) && keyE && (now - lastButtonPress > 500)) {
+                newPizzas();
+                lastButtonPress = now;
+            }
+        }
+
         // Animate cars moving
         function animateCars() {
             for (let i = cars.length - 1; i >= 0; i--) {
@@ -898,6 +942,7 @@
             handlePizzaWithKitten();
             handlePizzaWithCustomers();
             updateCameraFollow();
+            handleButtonInteraction();
             animateCars();
 
             // Rendering and controls
@@ -960,6 +1005,9 @@
                 case 32: //space
                     keySpace = true;
                     break;
+                case 69: //e
+                    keyE = true;
+                    break;
             }
         }
 
@@ -980,6 +1028,9 @@
                     break;
                 case 32: //space
                     keySpace = false;
+                case 69: //e
+                    keyE = false;
+                    break;
             }
         }
 
@@ -1003,13 +1054,14 @@
     </div>
     <div id="ElGatitoPizzeria"> </div>
     <div id="helpMenu" style="position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.85); padding: 10px; border-radius: 8px; font-family: Arial, sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.2); display:none;">
-        <h3>Objective</h3>
-        <h1 style="font-size: 1em; font-weight: normal; margin: 0;">Deliver the pizzas to the customers!</h1>
+        <h3 style = "text-align: center;">Objective</h3>
+        <h1 style="font-size: 1em; font-weight: normal; padding-left: 10px; padding-right: 10px;">Deliver the correct order of <br>pizza to the customers!</h1>
         <hr style="margin: 8px 0; border-color: rgba(0,0,0,0.1);">
-        <h3>Controls</h3>
-        <ul style="list-style: none; padding-left: 0;">
+        <h3 style="text-align: center;">Controls</h3>
+        <ul style="list-style: circle; padding-left: 15px;">
             <li style="margin-bottom: 5px;"><b>Movement: </b>A,W,S,D </li>
-            <li style="margin-bottom: 5px;"><b>PickUp: </b> SpaceBar</li>
+            <li style="margin-bottom: 5px;"><b>PickUp: </b> SpaceBar (hold)</li>
+            <li style="margin-bottom: 5px;"><b>Press button: </b> E (New Pizzas)</li>
         </ul>
     </div>
     <div id="dataMenu" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.85); padding: 15px; border-radius: 8px; font-family: Arial, sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-align: right; display:none;">

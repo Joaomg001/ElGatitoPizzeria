@@ -100,24 +100,6 @@
         const customerColors = ["#a88532", "#a85532", "#000000", "#ffffff", "#253745"];
 
         ///////////////////////////////////////////////////////////////////////
-        // Generate random color cubes (foods)
-        ///////////////////////////////////////////////////////////////////////
-        function generateRandomCubeColor(sceneGraph, index){
-            const randomFoodColors = CubeColors[Math.floor(Math.random() * CubeColors.length)];
-            const cubeFoodGeometry = new THREE.BoxGeometry(0.5,0.5,0.5);
-            const cubeFoodMaterial = new THREE.MeshPhongMaterial({ color: randomFoodColors });
-            const cubeFood = new THREE.Mesh(cubeFoodGeometry,cubeFoodMaterial);
-            cubeFood.position.set(index*1.5-3, 0.5, 5.2);
-
-            cubeFood.castShadow = true;
-            cubeFood.receiveShadow = true;
-
-            sceneGraph.add(cubeFood);
-
-            cubesFood.push(cubeFood);
-        }
-
-        ///////////////////////////////////////////////////////////////////////
         // Change the color of food cubes
         ///////////////////////////////////////////////////////////////////////
         function updateCubeColors() {
@@ -125,33 +107,6 @@
                 const newColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
                 cube.material.color.set(newColor);
                 console.log(cube.id, newColor);
-            });
-        }
-
-        ///////////////////////////////////////////////////////////////////////
-        // Reset customer cubes to random colors not finished
-        ///////////////////////////////////////////////////////////////////////
-        function updateCustomerCubeColors() {
-                console.log("////////////////////////////////////////////////////");
-                console.log(customerCubes.length, " customer cubes");
-                console.log("////////////////////////////////////////////////////");
-                customerCubes.forEach((cube) => {
-                    const newColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
-                    cube.material.color.set(newColor);
-                    console.log(cube.id, newColor);
-                    //print customerCubes array
-                    console.log("--------------------------------------------------");
-                    console.log("CubesFood Array: ", customerCubes);
-                    console.log("--------------------------------------------------");
-                });
-            // Update customer model color
-            customers.forEach((customer) => {
-                const randomColor = customerColors[Math.floor(Math.random() * customerColors.length)];
-                customer.traverse(function (node) {
-                    if (node.isMesh) {
-                        node.material.color.set(randomColor);
-                    }
-                });
             });
         }
 
@@ -199,12 +154,12 @@
         }
 
         ///////////////////////////////////////////////////////////////////////
-        // TEST CREATING PIZZA
+        // CREATING PIZZA
         ///////////////////////////////////////////////////////////////////////
         const pizzasA = [];
         const pizzasCustomer = [];
-        let pizzaBB,pizzaHelper;            // TESTING PIZZA BB
-        let pizzasCustomerBB,pizzasCustomerHelper; // TESTING PIZZA BB FOR CUSTOMER
+        let pizzaBB,pizzaHelper;            // Pizza BB
+        let pizzasCustomerBB,pizzasCustomerHelper; // Customer pizzas BB
         
         function createPizza(sceneGraph,index,belongsToCustomer, position = null) {
             const scale = 0.2;
@@ -242,7 +197,7 @@
                     pizzaType = 4;                
             }
             
-            // CREATE THE PIZZA BASE
+            // Create the pizza base
             const pizzaGroup = new THREE.Group();
 
             pizzaGroup.userData.pizzaType = pizzaType;
@@ -358,7 +313,7 @@
                 
                 for (let i = 0; i < 5; i++) {
                     generateRandomCustomer(sceneGraph,i); // Create customers
-                    createPizza(sceneGraph,i,false); // Create pizzas
+                    createPizza(sceneGraph,i,false); // Spawn pizzas 
                 }
 
                 // Spawn player character (kitten)
@@ -402,7 +357,7 @@
                 // Create a texture loader
                 const textureLoader = new THREE.TextureLoader();
 
-                // Create a restaurant floor ground plane
+                // Create restaurant floor
                 // Create floor
                 const floorTexture = textureLoader.load('textures/floor.jpg');
                 floorTexture.wrapS = THREE.RepeatWrapping;
@@ -429,7 +384,7 @@
                 sceneGraph.add(woodenFloor);
                 woodenFloor.receiveShadow = true;
 
-                // Create a table
+                // Create table
                 const BoxGeometry = new THREE.BoxGeometry(10, 0.5, 1);
                 const BoxMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(99,59,59)' });
                 const table = new THREE.Mesh(BoxGeometry, BoxMaterial);
@@ -456,7 +411,7 @@
                 table3.castShadow = true;
                 table4.castShadow = true;
 
-                // Creating the walls
+                // Create walls
                 const restaurantWallsGeometry = new THREE.BoxGeometry(13, 4 ,15);
                 const restaurantWallsTexture = textureLoader.load('textures/wall.jpg');
                 restaurantWallsTexture.wrapS = THREE.RepeatWrapping;
@@ -476,7 +431,7 @@
                 
                 sceneGraph.add(restaurantWalls);
                 
-                // add door
+                // Add door
                 const doorTexture = textureLoader.load('textures/door.jpg');
                 doorTexture.wrapS = THREE.RepeatWrapping;
                 doorTexture.wrapT = THREE.RepeatWrapping;
@@ -572,6 +527,7 @@
                 const postGeometry = new THREE.CylinderGeometry(0.2,0.2,6,32);
                 const postMaterial = new THREE.MeshPhongMaterial({color: 'rgb(0,0,0)'});
                 const post = new THREE.Mesh(postGeometry,postMaterial);
+                post.castShadow = true;
                 lampGroup.add(post);
 
                 const lampCapGeomety = new THREE.SphereGeometry(0.5,32,16);
@@ -604,7 +560,7 @@
         //  CREATE A CAR
         ///////////////////////////////////////////////////////////////////////
 
-        function createCar(sceneGraph) {
+        function createCar(direction) {
             const carGroup = new THREE.Group();
 
             // Car body
@@ -616,7 +572,6 @@
             body.receiveShadow = true;
             carGroup.add(body);
 
-            // Car roof
             const roofGeometry = new THREE.BoxGeometry(0.8, 0.3, 0.8);
             const roofMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(200, 0, 0)' });
             const roof = new THREE.Mesh(roofGeometry, roofMaterial);
@@ -662,26 +617,54 @@
             headlightSource.angle = Math.PI / 3.5;
             headlightSource.penumbra = 0.5;
             headlightSource.decay = 1;
-            const headlightSourceClone = headlightSource.clone();
             headlightSource.position.set(0.3, 0.8, 0.3);
-            headlightSourceClone.position.set(0.3, 0.8, -0.3);
 
             // Set target
             const headlightTarget = new THREE.Object3D();
-            const headlightTarget2 = new THREE.Object3D();
             headlightTarget.position.set(0.8, 0.8, 0.3);
-            headlightTarget2.position.set(0.8, 0.8, -0.3);
             carGroup.add(headlightTarget);
-            carGroup.add(headlightTarget2);
             headlightSource.target = headlightTarget;
-            headlightSourceClone.target = headlightTarget2;
 
             carGroup.add(headlightSource);
-            carGroup.add(headlightSourceClone);
 
-            // Add car to the scene
-            sceneGraph.add(carGroup);
+            if (direction === -1) {
+                carGroup.rotation.y = Math.PI;
+            }
+
+            return carGroup;
         }
+
+        const cars = [];
+        const carLanes = [-14,-12]; // Lanes
+        const carSpeedRange = [0.04, 0.08];
+
+        function spawnCar() {
+            let direction = 0;
+            if (cars.length >= 2) return; 
+            const lane = carLanes[Math.floor(Math.random() * carLanes.length)];
+            console.log("Spawning car in lane: " + lane);
+            // Side of road
+            if(lane == -14){ 
+                direction = 1; // Right
+            }else if(lane == -12){
+                direction = -1; // Left
+            }
+            const car = createCar(direction);
+
+            car.position.set(direction === 1 ? -25 : 25, 0.25, lane);
+            car.userData = {
+                speed: carSpeedRange[0] + Math.random() * (carSpeedRange[1] - carSpeedRange[0]),
+                direction: direction
+            };
+            sceneElements.sceneGraph.add(car);
+            cars.push(car);
+        }
+        
+        // Spawn cars every 1.8 seconds
+        setInterval(() => {
+            spawnCar();
+            console.log("Cars on the road: " + cars.length);
+        }, 2000);
                 
         ///////////////////////////////////////////////////////////////////////
         // Timer functionality
@@ -712,14 +695,12 @@
             const dataMenu = document.getElementById('dataMenu');
 
             startButton.addEventListener('click', () => {
-                // Hide overlay and show game UI
+                // Hide overlay
                 startOverlay.style.display = 'none';
                 elGatito.style.display = '';
                 helpMenu.style.display = '';
                 dataMenu.style.display = '';
 
-                // Start game and timer
-                //init();
                 gameStart = true;
                 startTimer();
             });
@@ -791,7 +772,7 @@
             const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
             if (!kitten) return;
 
-            // Try to pick up pizza
+            // Pick up pizza
             if (!heldPizza && keySpace) {
                 for (let i = 0; i < pizzasA.length; i++) {
                     const pizza = pizzasA[i];
@@ -847,7 +828,7 @@
                                 heldPizzaBB = null;
                                 return;
                             } else {
-                                console.log("Wrong pizza type!");
+                                console.log("Wrong pizza type");
                             }
                             break;
                         }
@@ -896,6 +877,20 @@
             sceneElements.camera.lookAt(kitten.position);
         }
 
+        // Animate cars moving
+        function animateCars() {
+            for (let i = cars.length - 1; i >= 0; i--) {
+                const car = cars[i];
+                car.position.x += car.userData.speed * car.userData.direction;
+
+                if ((car.userData.direction === 1 && car.position.x > 27) ||
+                    (car.userData.direction === -1 && car.position.x < -27)) {
+                    sceneElements.sceneGraph.remove(car);
+                    cars.splice(i, 1);
+                }
+            }
+        }
+
         function computeFrame(time) {
             updateScoreUI();
             handleKittenMovement();
@@ -903,6 +898,7 @@
             handlePizzaWithKitten();
             handlePizzaWithCustomers();
             updateCameraFollow();
+            animateCars();
 
             // Rendering and controls
             helper.render(sceneElements);

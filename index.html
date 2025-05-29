@@ -161,6 +161,7 @@
         ///////////////////////////////////////////////////////////////////////
         // Function to generate customer
         ///////////////////////////////////////////////////////////////////////
+        let belongsToCustomer = false;
         function generateRandomCustomer(sceneGraph, index, position) {
             //const customerGroup = new THREE.Group();
             const loader = new GLTFLoader();
@@ -201,36 +202,22 @@
             }
             )
             
-            const randomCubeColors = CubeColors[Math.floor(Math.random() * CubeColors.length)];
-            const customerCubeGeometry = new THREE.BoxGeometry(0.5,0.5,0.5);
-            const customerCubeMaterial = new THREE.MeshLambertMaterial({color: randomCubeColors,opacity: 0.5,transparent: true});
-            const customerCube = new THREE.Mesh(customerCubeGeometry,customerCubeMaterial);
+            createPizza(sceneGraph,index,true); // Create pizza for customer
 
             // Set customer cube position at balcony
             if (position) {
-                customerCube.position.copy(position);
+                pizzasCustomer[index].position.copy(position);
             } else {
-                customerCube.position.set(index*1.5-3, 0.5, -5.2);
+                pizzasCustomer[index].position.set(index*1.5-3, 0.3, -5.2);
             }
-            customerCube.castShadow = true;
-            customerCube.receiveShadow = true;
-            customerCube.name = "customerCube";
-            sceneGraph.add(customerCube);
-
-            customerCubes.push(customerCube);
-            // Cube bounding box
-            /*
-            const customerCubeBB =  new THREE.Box3().setFromObject(customerCube);
-            const customerCubeHelper = new THREE.Box3Helper(customerCubeBB, 0x0000ff); // blue 
-            customerCubeBB.expandByScalar(0.2);
-            */
-            // SceneGraph.add(customerCubeHelper);
         }
+
         ///////////////////////////////////////////////////////////////////////
         // TEST CREATING PIZZA
         ///////////////////////////////////////////////////////////////////////
         const pizzasA = [];
-        function createPizza(sceneGraph,index) {
+        const pizzasCustomer = [];
+        function createPizza(sceneGraph,index,belongsToCustomer) {
             const scale = 0.2;
             const randomPizza = Math.floor(Math.random()*5) // 5 different types
             let toppingColor, toppingType;
@@ -261,10 +248,7 @@
                     toppingColor = 'rgb(0,128,0)';                
             }
             
-            ///////////////////////////////////////////////////////////////////////
             // CREATE THE PIZZA BASE
-            ///////////////////////////////////////////////////////////////////////
-            
             const pizzaGroup = new THREE.Group();
 
             const pizzaBaseGeometry = new THREE.CylinderGeometry(2.1*scale,2.1*scale,0.05*scale, 32);
@@ -341,16 +325,25 @@
                     pizzaGroup.add(topping);
                 })
             }
-
-            pizzaGroup.position.set(index*1.5-3, 0.3, 5.2);
-            pizzaGroup.name = "";
-            // TESTING PIZZA
-            pizzaBB = new THREE.Box3().setFromObject(pizzaGroup);
-            pizzaHelper = new THREE.Box3Helper(pizzaBB, 0xff0000); // red
-            sceneGraph.add(pizzaHelper);
-            // ENDS HERE
-            sceneGraph.add(pizzaGroup);
-            pizzasA.push(pizzaGroup);
+            if(belongsToCustomer == false){
+                pizzaGroup.position.set(index*1.5-3, 0.3, 5.2);
+                // TESTING PIZZA
+                pizzaBB = new THREE.Box3().setFromObject(pizzaGroup);
+                pizzaHelper = new THREE.Box3Helper(pizzaBB, 0xff0000); // red
+                sceneGraph.add(pizzaHelper);
+                // ENDS HERE
+                sceneGraph.add(pizzaGroup);
+                pizzasA.push(pizzaGroup);
+            }else if(belongsToCustomer == true){
+                pizzaGroup.position.set(index*1.5-3, 0.3, -5.2);
+                // TESTING PIZZA
+                pizzaBB = new THREE.Box3().setFromObject(pizzaGroup);
+                pizzaHelper = new THREE.Box3Helper(pizzaBB, 0xfff000); // red
+                sceneGraph.add(pizzaHelper);
+                // ENDS HERE
+                sceneGraph.add(pizzaGroup);
+                pizzasCustomer.push(pizzaGroup);
+            }
         }
         
         ///////////////////////////////////////////////////////////////////////
@@ -368,23 +361,9 @@
                 for (let i = 0; i < 5; i++) {
                     //generateRandomCubeColor(sceneGraph, i);
                     generateRandomCustomer(sceneGraph,i);
-                    createPizza(sceneGraph,i);
+                    createPizza(sceneGraph,i,false); // Create pizzas for the restaurant
                 }
 
-                // Create a cube to hold
-                const TestGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-                const TestMaterial = new THREE.MeshPhongMaterial({ color:0Xff0000 });
-                const Test = new THREE.Mesh(TestGeometry, TestMaterial);
-                Test.position.set(1, 0.5, 3);
-                Test.name = "testCube";
-                sceneGraph.add(Test);
-                Test.castShadow = true;
-                
-                // Add bounding box for the test cube
-                testCubeBB = new THREE.Box3().setFromObject(Test);
-                testCubeHelper = new THREE.Box3Helper(testCubeBB, 0xff0000); // red
-                // sceneGraph.add(testCubeHelper);
-                
                 // Spawn player character (kitten)
                 const loader = new GLTFLoader();
                 loader.load(
@@ -448,6 +427,7 @@
                 const woodenFloorGeometry = new THREE.PlaneGeometry(13, 15);
                 const woodenFloorMaterial = new THREE.MeshPhongMaterial({ map: woodenFloorTexture, side: THREE.DoubleSide });
                 const woodenFloor = new THREE.Mesh(woodenFloorGeometry, woodenFloorMaterial);
+                woodenFloor.position.set(0, -0.15, 0);
                 woodenFloor.rotation.x = -Math.PI / 2;
                 sceneGraph.add(woodenFloor);
                 woodenFloor.receiveShadow = true;
@@ -593,7 +573,7 @@
                 createLamp(sceneGraph);
                 
                 // Add car
-                createCar(sceneGraph);
+                //createCar(sceneGraph);
                 
             }
         };
@@ -613,7 +593,7 @@
             const lampCapGeomety = new THREE.SphereGeometry(0.5,32,16);
             const lampCapMaterial = new THREE.MeshPhongMaterial({color: 'rgb(255, 162, 57)', transparent: true, opacity: 0.7, emissive: 'rgb(255, 162, 57)', emissiveIntensity: 1});
             const lampCap = new THREE.Mesh(lampCapGeomety,lampCapMaterial);
-            lampCap.position.set(0,3,0);
+            lampCap.position.set(0,3.4,0);
             lampGroup.add(lampCap);
 
             // Light coming from the lamp
@@ -693,16 +673,43 @@
         // Timer functionality
         ///////////////////////////////////////////////////////////////////////
 
-        let startTime = new Date().getTime();
+        // Timer variables
+        let startTime;
+        let timerInterval;
 
-        var x = setInterval(function() {
-            let currentTime = new Date().getTime();
-            let timeDiff = currentTime - startTime;
-            let seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-            let minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+        // Function to start the timer
+        function startTimer() {
+            startTime = new Date().getTime();
+            timerInterval = setInterval(function() {
+                let currentTime = new Date().getTime();
+                let timeDiff = currentTime - startTime;
+                let seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+                let minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                document.getElementById("timer").innerHTML = minutes + "m " + seconds + "s ";
+            }, 1000);
+        }
 
-            document.getElementById("timer").innerHTML = minutes + "m " + seconds + "s ";
-        }, 1000);
+        // Handle Start Button
+        window.addEventListener('DOMContentLoaded', () => {
+            const startOverlay = document.getElementById('startOverlay');
+            const startButton = document.getElementById('startButton');
+            const elGatito = document.getElementById('ElGatitoPizzeria');
+            const helpMenu = document.getElementById('helpMenu');
+            const dataMenu = document.getElementById('dataMenu');
+
+            startButton.addEventListener('click', () => {
+                // Hide overlay and show game UI
+                startOverlay.style.display = 'none';
+                elGatito.style.display = '';
+                helpMenu.style.display = '';
+                dataMenu.style.display = '';
+
+                // Start game and timer
+                //init();
+                gameStart = true;
+                startTimer();
+            });
+        });
 
         ///////////////////////////////////////////////////////////////////////
         // ANIMATION
@@ -713,10 +720,13 @@
         let keyD = false, keyA = false, keyS = false, keyW = false, keySpace = false;
         const cameraOffset = new THREE.Vector3(0, 10, 10);
         let score = 0;
+        let gameStart = false;
         // Bounding boxes
-        let testCubeBB, testCubeHelper;
         let kittenBB, kittenHelper;
         let customerCubeBB, customerCubeHelper;
+
+        let heldPizza = null;
+        let heldPizzaBB = null;
 
         // Update score UI
         function updateScoreUI() {
@@ -746,10 +756,9 @@
             }
         }
 
-        // Update bounding boxes for kitten and test cube
+        // Update bounding boxes for kitten and held pizza
         function updateBoundingBoxes() {
             const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
-            const testCube = sceneElements.sceneGraph.getObjectByName("testCube");
 
             if (kitten) {
                 kittenBB.setFromObject(kitten);
@@ -757,63 +766,78 @@
                 kittenHelper.updateMatrixWorld(true);
             }
 
-            if (testCube) {
-                testCubeBB.setFromObject(testCube);
-                testCubeBB.expandByScalar(0.2);
-                testCubeHelper.updateMatrixWorld(true);
+            if (heldPizza && heldPizzaBB) {
+                heldPizzaBB.setFromObject(heldPizza);
+                heldPizzaBB.expandByScalar(0.2);
             }
         }
 
-        // Handle test cube interaction with kitten and customers
-        function handleTestCubeWithKitten() {
+        // Handle pizza pickup and movement with kitten
+        function handlePizzaWithKitten() {
             const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
-            const testCube = sceneElements.sceneGraph.getObjectByName("testCube");
+            if (!kitten) return;
 
-            if (!kitten || !testCube || !keySpace) return;
+            // Try to pick up pizza
+            if (!heldPizza && keySpace) {
+                for (let i = 0; i < pizzasA.length; i++) {
+                    const pizza = pizzasA[i];
+                    if (pizza && kittenBB.intersectsBox(new THREE.Box3().setFromObject(pizza))) {
+                        heldPizza = pizza;
+                        heldPizzaBB = new THREE.Box3().setFromObject(heldPizza);
+                        break;
+                    }
+                }
+            }
 
-            if (kittenBB.intersectsBox(testCubeBB)) {
+            // Change pizza position to follow kitten
+            if (heldPizza && keySpace) {
                 const forward = new THREE.Vector3(1, 0.5, 0).applyQuaternion(kitten.quaternion).normalize();
-                testCube.position.copy(kitten.position.clone().add(forward));
+                heldPizza.position.copy(kitten.position.clone().add(forward));
+                heldPizzaBB.setFromObject(heldPizza);
+            }
+
+            // Drop pizza
+            if (heldPizza && !keySpace) {
+                heldPizza = null;
+                heldPizzaBB = null;
             }
         }
 
-        // Handle test cube interaction with customer cubes
-        function handleTestCubeWithCustomers() {
-            const testCube = sceneElements.sceneGraph.getObjectByName("testCube");
-            if (!testCube) return;
+        // Handle pizza interaction with customer cubes
+        function handlePizzaWithCustomers() {
+            if (!heldPizza || !heldPizzaBB) return;
 
-            customerCubes.forEach((customerCube) => {
+            customerCubes.forEach((customerCube, idx) => {
                 const customerCubeBB = new THREE.Box3().setFromObject(customerCube);
-                if (!testCubeBB.intersectsBox(customerCubeBB)) return;
+                if (!heldPizzaBB.intersectsBox(customerCubeBB)) return;
 
-                console.log("testCube intersects with customerCube");
-
-                if (testCube.material.color.getHex() === customerCube.material.color.getHex()) {
-                    console.log("right color");
+                // Compare pizza base color to customer cube color
+                // (Assume pizza base is first child of pizza group)
+                const pizzaBase = heldPizza.children.find(child => child.material && child.material.color);
+                if (pizzaBase && pizzaBase.material.color.getHex() === customerCube.material.color.getHex()) {
                     score += 10;
 
                     const respawnPosition = customerCube.position.clone();
                     sceneElements.sceneGraph.remove(customerCube);
 
-                    const index = customerCubes.indexOf(customerCube);
-                    if (index > -1) {
-                        customerCubes.splice(index, 1);
-                        const customer = customers[index];
-
-                        if (customer) {
-                            animateCustomerLeave(customer, index, respawnPosition);
-                        } else {
-                            setTimeout(() => {
-                                generateRandomCustomer(sceneElements.sceneGraph, index, respawnPosition);
-                            }, 2000);
-                        }
-
-                        // Reset and recolor test cube
-                        testCube.position.set(1, 0.5, 3);
-                        testCubeBB.setFromObject(testCube);
-                        const randomFoodColor = CubeColors[Math.floor(Math.random() * CubeColors.length)];
-                        testCube.material.color.set(randomFoodColor);
+                    // Remove customerCube and customer
+                    customerCubes.splice(idx, 1);
+                    const customer = customers[idx];
+                    if (customer) {
+                        animateCustomerLeave(customer, idx, respawnPosition);
+                    } else {
+                        setTimeout(() => {
+                            generateRandomCustomer(sceneElements.sceneGraph, idx, respawnPosition);
+                        }, 2000);
                     }
+
+                    // Remove pizza from scene and pizzasA
+                    sceneElements.sceneGraph.remove(heldPizza);
+                    const pizzaIdx = pizzasA.indexOf(heldPizza);
+                    if (pizzaIdx > -1) pizzasA.splice(pizzaIdx, 1);
+
+                    heldPizza = null;
+                    heldPizzaBB = null;
                 }
             });
         }
@@ -856,10 +880,10 @@
             updateScoreUI();
             handleKittenMovement();
             updateBoundingBoxes();
-            handleTestCubeWithKitten();
-            handleTestCubeWithCustomers();
+            handlePizzaWithKitten();
+            handlePizzaWithCustomers();
             updateCameraFollow();
-            
+
             // Rendering and controls
             helper.render(sceneElements);
             sceneElements.control.update();
@@ -903,6 +927,7 @@
         }
 
         function onDocumentKeyDown(event) {
+            if(gameStart==false)return;
             switch (event.keyCode) {
                 case 68: //d
                     keyD = true;
@@ -929,6 +954,7 @@
         }
 
         function onDocumentKeyUp(event) {
+            if(gameStart==false)return;
             switch (event.keyCode) {
                 case 68: //d
                     keyD = false;
@@ -956,21 +982,30 @@
 </head>
 
 <body>
-    <div id="ElGatitoPizzeria"> </div>
-    <div id="helpMenu" style="position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.8); padding: 10px; border-radius: 5px; font-family: Arial, sans-serif;">
-        <h3>Controls</h3>
-        <div id = "table">
-            <li style="margin-bottom: 5px;"><b>Movement: </b>A,W,S,D</li>
-            <li style="margin-bottom: 5px;"><b>PickUp: </b> SpaceBar (hold)</li>
-            <li style="margin-bottom: 5px;"><b>Reset Food Colors: </b>R</li>
-            <li style="margin-bottom: 5px;"><b>Reset Customer Food Colors: </b>F</li>
-        </div>
+    <div id="startOverlay" style="position: fixed; width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: url('textures/background.jpg') center center / cover no-repeat; z-index: 10; padding-top: 50px;">
+        <img src="textures/grass.jpg" alt="El Gatito Pizzeria" style="max-width: 80%; max-height: 300px; margin-bottom: 20px; border: 5px solid #503018; border-radius:10px;">
+        <h1 style="color: white; font-size: 3em; font-family: 'Times New Roman'; text-shadow: 2px 2px 0 #000,-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000, 0 0 10px #000; text-align: center;">
+            Welcome to El Gatito Pizzeria!
+        </h1>
+        <button id="startButton" style="font-size: 2rem;margin-top: 40px;padding: 0.8em 1.8em;border-radius: 10px; cursor: pointer; background-color: #ffc107; border: 3px solid #e0a800; color: #402008; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+            Start Game
+        </button>
     </div>
-    <div id = dataMenu style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border-radius: 5px; font-family: Arial, sans-serif;">
+    <div id="ElGatitoPizzeria"> </div>
+    <div id="helpMenu" style="position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.85); padding: 10px; border-radius: 8px; font-family: Arial, sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.2); display:none;">
+        <h3>Controls</h3>
+        <ul style="list-style: none; padding-left: 0;">
+            <li style="margin-bottom: 5px;"><b>Movement: </b>A,W,S,D </li>
+            <li style="margin-bottom: 5px;"><b>PickUp: </b> SpaceBar</li>
+            <li style="margin-bottom: 5px;"><b>Shuffle Pizzas (Debug): </b>R</li>
+            <li style="margin-bottom: 5px;"><b>New Orders (Debug): </b>F</li>
+        </ul>
+    </div>
+    <div id="dataMenu" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.85); padding: 15px; border-radius: 8px; font-family: Arial, sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-align: right; display:none;">
         <div id="dataTable">
-            <b style="margin-bottom: 5px; font-size: xx-large;">Score: <span id="score"></span> </b>
-            <hr style="margin: 10px;">
-            <b style="margin-bottom: 5px;">Time: </b><span id="timer"></span>
+            <div style="margin-bottom: 8px; font-size: 1.8em;"><b>Score: <span id="score">0</span> </b></div>
+            <hr style="margin: 8px 0; border-color: rgba(0,0,0,0.1);">
+            <div style="font-size: 1.1em;"><b>Time: </b><span id="timer">0m 0s</span></div>
         </div>
     </div>
 </body>

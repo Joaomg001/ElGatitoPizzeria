@@ -1013,6 +1013,9 @@
             setInterval(showNextHint, 5000);
         });
 
+        ///////////////////////////////////////////////////////////////////////
+        // MAIN ANIMATION LOOP
+        ///////////////////////////////////////////////////////////////////////
         function computeFrame(time) {
             let deltaTime = (time - lastTime) / 1000;
             deltaTime = Math.min(deltaTime, 0.05);    // cap DeltaTime

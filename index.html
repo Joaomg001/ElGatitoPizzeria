@@ -163,53 +163,43 @@
         ///////////////////////////////////////////////////////////////////////
         let belongsToCustomer = false;
         function generateRandomCustomer(sceneGraph, index, position) {
-            //const customerGroup = new THREE.Group();
             const loader = new GLTFLoader();
             loader.load(
                 'Kitten.glb',
                 function (gltf) {
                     const customer = gltf.scene;
 
-                    // Set customer spawn position at balcony
+                    // Set position
                     if (position) {
                         customer.position.copy(position);
                         customer.position.z = -5.8;
                     } else {
-                        customer.position.set(index*1.5-3,0.5,-5.8);
+                        customer.position.set(index * 1.5 - 3, 0.5, -5.8);
                     }
-                    customer.scale.set(0.1,0.1,0.1);
-                    customer.rotation.y = -Math.PI/2;
+                    customer.scale.set(0.1, 0.1, 0.1);
+                    customer.rotation.y = -Math.PI / 2;
 
                     // Pick random color
                     const randomColor = customerColors[Math.floor(Math.random() * customerColors.length)];
-
                     customer.traverse(function (node) {
-                    if (node.isMesh) {
-                        node.castShadow = true;
-                        node.receiveShadow = true;
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                            node.material.color.set(randomColor);
+                        }
+                    });
 
-                        node.material.color.set(randomColor);
-                    }
-                });
+                    sceneGraph.add(customer);
+                    customers[index] = customer; // assign at index
 
-                sceneGraph.add(customer);
-
-                customers.push(customer);
-            },
-            undefined,
-            function (error) {
-                console.error('An error occurred while loading the kitten model:', error);
-            }
-            )
-            
-            createPizza(sceneGraph,index,true); // Create pizza for customer
-
-            // Set customer cube position at balcony
-            if (position) {
-                pizzasCustomer[index].position.copy(position);
-            } else {
-                pizzasCustomer[index].position.set(index*1.5-3, 0.3, -5.2);
-            }
+                    // Create pizza at the same index and position
+                    createPizza(sceneGraph, index, true, customer.position);
+                },
+                undefined,
+                function (error) {
+                    console.error('An error occurred while loading the kitten model:', error);
+                }
+            );
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -217,40 +207,50 @@
         ///////////////////////////////////////////////////////////////////////
         const pizzasA = [];
         const pizzasCustomer = [];
-        function createPizza(sceneGraph,index,belongsToCustomer) {
+        let pizzaBB,pizzaHelper;            // TESTING PIZZA BB
+        let pizzasCustomerBB,pizzasCustomerHelper; // TESTING PIZZA BB FOR CUSTOMER
+        
+        function createPizza(sceneGraph,index,belongsToCustomer, position = null) {
             const scale = 0.2;
             const randomPizza = Math.floor(Math.random()*5) // 5 different types
             let toppingColor, toppingType;
             let toppingFlag = false;
+            let pizzaType = -1; // -1 means no pizza type selected
 
             switch(randomPizza){
                 case 0: // Cheese
                     toppingFlag = false;
+                    pizzaType = 0;
                     break;
                 case 1: // Pepperoni
                     toppingFlag = true;
                     toppingType = 0;
                     toppingColor = 'rgb(210, 43, 43)';
-                    break;rgb(210, 43, 43)
+                    pizzaType = 1;
                 case 2: // Olives
                     toppingFlag = true;
                     toppingType = 0;
                     toppingColor = 'rgb(0,0,0)';
+                    pizzaType = 2;
                     break;
                 case 3: // Bacon
                     toppingFlag = true;
                     toppingType = 1;
                     toppingColor = 'rgb(240,128,128)';
+                    pizzaType = 3;
                     break;
                 case 4: // Peppers
                     toppingFlag = true;
                     toppingType = 1;
-                    toppingColor = 'rgb(0,128,0)';                
+                    toppingColor = 'rgb(0,128,0)';
+                    pizzaType = 4;                
             }
             
             // CREATE THE PIZZA BASE
             const pizzaGroup = new THREE.Group();
 
+            pizzaGroup.userData.pizzaType = pizzaType;
+            
             const pizzaBaseGeometry = new THREE.CylinderGeometry(2.1*scale,2.1*scale,0.05*scale, 32);
             const pizzaBaseMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(238, 192, 123)'});
             const pizzaBase = new THREE.Mesh(pizzaBaseGeometry, pizzaBaseMaterial);
@@ -325,24 +325,28 @@
                     pizzaGroup.add(topping);
                 })
             }
+
+            
             if(belongsToCustomer == false){
                 pizzaGroup.position.set(index*1.5-3, 0.3, 5.2);
                 // TESTING PIZZA
                 pizzaBB = new THREE.Box3().setFromObject(pizzaGroup);
+                pizzaBB.expandByScalar(0.2);
                 pizzaHelper = new THREE.Box3Helper(pizzaBB, 0xff0000); // red
                 sceneGraph.add(pizzaHelper);
                 // ENDS HERE
                 sceneGraph.add(pizzaGroup);
                 pizzasA.push(pizzaGroup);
             }else if(belongsToCustomer == true){
-                pizzaGroup.position.set(index*1.5-3, 0.3, -5.2);
-                // TESTING PIZZA
-                pizzaBB = new THREE.Box3().setFromObject(pizzaGroup);
-                pizzaHelper = new THREE.Box3Helper(pizzaBB, 0xfff000); // red
-                sceneGraph.add(pizzaHelper);
-                // ENDS HERE
+                if (position) {
+                    pizzaGroup.position.copy(position);
+                    pizzaGroup.position.y = 0.3; // on table
+                    pizzaGroup.position.z = -5.2;
+                } else {
+                    pizzaGroup.position.set(index*1.5-3, 0.3, -5.2);
+                }
                 sceneGraph.add(pizzaGroup);
-                pizzasCustomer.push(pizzaGroup);
+                pizzasCustomer[index] = pizzaGroup; // assign at index
             }
         }
         
@@ -350,7 +354,6 @@
         // FUCNTIONS FOR BUILDING THE SCENE
         ///////////////////////////////////////////////////////////////////////
 
-        let pizzaBB,pizzaHelper;            // TESTING PIZZA BB
         const scene = {
 
             // Create and insert in the scene graph the models of the 3D scene
@@ -804,67 +807,75 @@
         }
 
         // Handle pizza interaction with customer cubes
-        function handlePizzaWithCustomers() {
-            if (!heldPizza || !heldPizzaBB) return;
+    function handlePizzaWithCustomers() {
+        // Check if the held pizza intersects with any customer pizzas
+        if (heldPizza && heldPizzaBB) {
+            for (let i = 0; i < pizzasCustomer.length; i++) {
+                const customerPizza = pizzasCustomer[i];
+                if (customerPizza) {
+                    // Always update and expand the bounding box
+                    const customerPizzaBB = new THREE.Box3().setFromObject(customerPizza);
+                    customerPizzaBB.expandByScalar(0.2);
 
-            customerCubes.forEach((customerCube, idx) => {
-                const customerCubeBB = new THREE.Box3().setFromObject(customerCube);
-                if (!heldPizzaBB.intersectsBox(customerCubeBB)) return;
-
-                // Compare pizza base color to customer cube color
-                // (Assume pizza base is first child of pizza group)
-                const pizzaBase = heldPizza.children.find(child => child.material && child.material.color);
-                if (pizzaBase && pizzaBase.material.color.getHex() === customerCube.material.color.getHex()) {
-                    score += 10;
-
-                    const respawnPosition = customerCube.position.clone();
-                    sceneElements.sceneGraph.remove(customerCube);
-
-                    // Remove customerCube and customer
-                    customerCubes.splice(idx, 1);
-                    const customer = customers[idx];
-                    if (customer) {
-                        animateCustomerLeave(customer, idx, respawnPosition);
-                    } else {
-                        setTimeout(() => {
-                            generateRandomCustomer(sceneElements.sceneGraph, idx, respawnPosition);
-                        }, 2000);
+                    if (heldPizzaBB.intersectsBox(customerPizzaBB)) {
+                        // Check if pizza types match
+                        if (heldPizza.userData.pizzaType === customerPizza.userData.pizzaType) {
+                            // Animate customer leaving
+                            const respawnPosition = new THREE.Vector3(i * 1.5 - 3, 0.5, -5.8);
+                            animateCustomerLeave(customers[i], i, respawnPosition);
+                            score += 10; // Increase score
+                            updateScoreUI();
+                            // Remove the customer pizza from the scene and mark slot as empty
+                            sceneElements.sceneGraph.remove(customerPizza);
+                            pizzasCustomer[i] = null;
+                            // Remove the held pizza
+                            sceneElements.sceneGraph.remove(heldPizza);
+                            heldPizza = null;
+                            heldPizzaBB = null;
+                        } else {
+                            // Optionally, give feedback for wrong pizza type
+                            console.log("Wrong pizza type!");
+                        }
+                        break;
                     }
-
-                    // Remove pizza from scene and pizzasA
-                    sceneElements.sceneGraph.remove(heldPizza);
-                    const pizzaIdx = pizzasA.indexOf(heldPizza);
-                    if (pizzaIdx > -1) pizzasA.splice(pizzaIdx, 1);
-
-                    heldPizza = null;
-                    heldPizzaBB = null;
-                }
-            });
-        }
-
-        // Animate custommer leaving
-        function animateCustomerLeave(customer, index, respawnPosition) {
-            const startZ = customer.position.z;
-            const endZ = -9;
-            const duration = 1000;
-            const startTime = performance.now();
-
-            function animateWalk(now) {
-                const elapsed = now - startTime;
-                const t = Math.min(elapsed / duration, 1);
-                customer.position.z = startZ + (endZ - startZ) * t;
-
-                if (t < 1) {
-                    requestAnimationFrame(animateWalk);
-                } else {
-                    sceneElements.sceneGraph.remove(customer);
-                    customers.splice(index, 1);
-                    generateRandomCustomer(sceneElements.sceneGraph, index, respawnPosition);
                 }
             }
-
-            requestAnimationFrame(animateWalk);
         }
+    }
+
+    function animateCustomerLeave(customer, index) {
+        const startZ = customer.position.z;
+        const endZ = -9;
+        const duration = 1000;
+        const startTime = performance.now();
+        // Save the current position (x, y, z) before animating
+        const respawnPosition = customer.position.clone();
+
+        function animateWalk(now) {
+            const elapsed = now - startTime;
+            const t = Math.min(elapsed / duration, 1);
+            customer.position.z = startZ + (endZ - startZ) * t;
+
+            if (t < 1) {
+                requestAnimationFrame(animateWalk);
+            } else {
+                sceneElements.sceneGraph.remove(customer);
+                customers[index] = null;
+                // Respawn after a short delay (optional)
+                setTimeout(() => {
+                    // Remove any leftover pizza at this index (safety)
+                    if (pizzasCustomer[index]) {
+                        sceneElements.sceneGraph.remove(pizzasCustomer[index]);
+                        pizzasCustomer[index] = null;
+                    }
+                    // Generate new customer and pizza at the same position
+                    generateRandomCustomer(sceneElements.sceneGraph, index, respawnPosition);
+                }, 1000); // 1s delay before respawn
+            }
+        }
+
+        requestAnimationFrame(animateWalk);
+    }
 
         // Update the camera position following the kitten
         function updateCameraFollow() {

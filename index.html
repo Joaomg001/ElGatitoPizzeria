@@ -665,9 +665,10 @@
 
         const cars = [];
         const carLanes = [-14,-12]; // Lanes
-        const carSpeedRange = [0.04, 0.08];
+        const carSpeedRange = [0.04*2, 0.08*2];
         
         function spawnCar() {
+            gameEnded; return;
             let direction = 0;
             if (cars.length >= 2) return; 
             const lane = carLanes[Math.floor(Math.random() * carLanes.length)];
@@ -742,7 +743,7 @@
         ///////////////////////////////////////////////////////////////////////
         
         // variables
-        let kittenSpeed = 0.05;
+        let kittenSpeed = 0.05*2;
         let keyD = false, keyA = false, keyS = false, keyW = false, keyE = false, keySpace = false;
         const cameraOffset = new THREE.Vector3(0, 10, 10);
         let score = 0;

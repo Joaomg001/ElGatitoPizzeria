@@ -668,7 +668,8 @@
         const carSpeedRange = [0.04*2, 0.08*2];
         
         function spawnCar() {
-            gameEnded; return;
+            //stop spawing if game ended
+            if (gameEnded) return;
             let direction = 0;
             if (cars.length >= 2) return; 
             const lane = carLanes[Math.floor(Math.random() * carLanes.length)];

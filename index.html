@@ -36,14 +36,21 @@
         // Loading Manager
         ///////////////////////////////////////////////////////////////////////
         const loadingManager = new THREE.LoadingManager();
+        let loadingScreenShownOnce = false; // Add this near your other global variables
 
+        // Update loadingManager.onStart and onLoad:
         loadingManager.onStart = function () {
-            document.getElementById('loadingScreen').style.display = 'flex';
-            document.getElementById('loadingProgress').textContent = '0%';
+            if (!loadingScreenShownOnce) {
+                document.getElementById('loadingScreen').style.display = 'flex';
+                document.getElementById('loadingProgress').textContent = '0%';
+            }
         };
 
         loadingManager.onLoad = function () {
-            document.getElementById('loadingScreen').style.display = 'none';
+            if (!loadingScreenShownOnce) {
+                document.getElementById('loadingScreen').style.display = 'none';
+                loadingScreenShownOnce = true;
+            }
             if (gameStart) {
                 requestAnimationFrame(computeFrame);
             }
@@ -732,7 +739,7 @@
 
         // Initialize cars
         function initCars() {
-            for (let i = 0; i < 3; i++) { // pick number of cars
+            for (let i = 0; i < 2; i++) { // pick number of cars
                 const lane = carLanes[i % carLanes.length];
                 const direction = lane === -14 ? 1 : -1;
                 const car = createCar(direction);
@@ -1125,7 +1132,11 @@
                     keyW = true;
                     break;
                 case 32: //space
+                if(keySpace == false) {
                     keySpace = true;
+                }else if(keySpace == true) {
+                    keySpace = false;
+                }
                     break;
                 case 69: //e
                     keyE = true;
@@ -1148,9 +1159,6 @@
                 case 87: //w
                     keyW = false;
                     break;
-                case 32: //space
-                    keySpace = false;
-                    break; // Added missing break
                 case 69: //e
                     keyE = false;
                     break;
@@ -1187,8 +1195,8 @@
         <h3 style="text-align: center;">Controls</h3>
         <ul style="list-style: circle; padding-left: 15px;">
             <li style="margin-bottom: 5px;"><b>Movement: </b>A,W,S,D </li>
-            <li style="margin-bottom: 5px;"><b>PickUp: </b> SpaceBar (hold)</li>
-            <li style="margin-bottom: 5px;"><b>Press bell: </b> E (New Pizzas)</li>
+            <li style="margin-bottom: 5px;"><b>PickUp/Drop: </b> SpaceBar</li>
+            <li style="margin-bottom: 5px;"><b>Interact with bell: </b> E (New Pizzas)</li>
         </ul>
     </div>
     <div id="dataMenu" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.85); padding: 15px; border-radius: 8px; font-family: Arial, sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-align: right; display:none;">

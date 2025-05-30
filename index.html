@@ -21,9 +21,7 @@
     <script type="module">
 
         import * as THREE from "three";
-
         import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-
         import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
         // To store the scene graph, and elements usefull to rendering the scene
@@ -33,6 +31,72 @@
             control: null,
             renderer: null,
         };
+
+        ///////////////////////////////////////////////////////////////////////
+        // Loading Manager
+        ///////////////////////////////////////////////////////////////////////
+        const loadingManager = new THREE.LoadingManager();
+
+        loadingManager.onStart = function () {
+            document.getElementById('loadingScreen').style.display = 'flex';
+            document.getElementById('loadingProgress').textContent = '0%';
+        };
+
+        loadingManager.onLoad = function () {
+            document.getElementById('loadingScreen').style.display = 'none';
+            if (gameStart) {
+                requestAnimationFrame(computeFrame);
+            }
+        };
+
+        loadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {
+            const progress = (itemsLoaded / itemsTotal) * 100;
+            document.getElementById('loadingProgress').textContent = `${Math.round(progress)}%`;
+        };
+
+        
+        ///////////////////////////////////////////////////////////////////////
+        // Vaiables
+        ///////////////////////////////////////////////////////////////////////
+        const loader = new GLTFLoader(loadingManager);
+        const textureLoader = new THREE.TextureLoader(loadingManager);
+
+        const customers = [];
+        const pizzasA = [];
+        const pizzasCustomer = [];
+        const cars = [];
+        let pizzaBB, pizzaHelper;
+        let kittenBB, kittenHelper;
+
+        const customerColors = ["#a88532", "#a85532", "#000000", "#ffffff", "#253745"];
+        const carLanes = [-14, -12];
+        const carSpeedRange = [10, 14];
+        let kittenSpeed = 10;
+        const cameraOffset = new THREE.Vector3(0, 10, 10);
+
+        let score = 0;
+        let gameStart = false;
+        let gameEnded = false;
+        let heldPizza = null;
+        let heldPizzaBB = null;
+        let lastButtonPress = 0;
+        let lastTime = performance.now();
+
+        let keyD = false, keyA = false, keyS = false, keyW = false, keyE = false, keySpace = false;
+
+        let startTime;
+        let timerInterval;
+        let elapsedSeconds = 0;
+
+        // Hints variables
+        let currentHintIndex = 0;
+        const hints = [
+            "Hold SpaceBar to pick up pizzas.",
+            "Deliver the right pizza to the right customer.",
+            "Use W, A, S, D to move.",
+            "When close to the bell press E to reset the pizzas.",
+            "Try to deliver pizzas before time runs out! (2 minutes)"
+        ];
 
         ///////////////////////////////////////////////////////////////////////
         // HELPER FUNCTIONS
@@ -97,39 +161,6 @@
             },
         };
 
-        ///////////////////////////////////////////////////////////////////////
-        // Loading Manager
-        ///////////////////////////////////////////////////////////////////////
-        const loadingManager = new THREE.LoadingManager();
-
-        loadingManager.onStart = function () {
-            document.getElementById('loadingScreen').style.display = 'flex';
-            document.getElementById('loadingProgress').textContent = '0%';
-        };
-
-        loadingManager.onLoad = function () {
-            document.getElementById('loadingScreen').style.display = 'none';
-            if (gameStart) {
-                requestAnimationFrame(computeFrame);
-            }
-        };
-
-        loadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {
-            const progress = (itemsLoaded / itemsTotal) * 100;
-            document.getElementById('loadingProgress').textContent = `${Math.round(progress)}%`;
-        };
-
-        ///////////////////////////////////////////////////////////////////////
-        // Vaiables
-        ///////////////////////////////////////////////////////////////////////
-        const customers = [];
-        const customerColors = ["#a88532", "#a85532", "#000000", "#ffffff", "#253745"];
-        const pizzasA = [];
-        const pizzasCustomer = [];
-        let pizzaBB,pizzaHelper;            // Pizza BB
-        const loader = new GLTFLoader(loadingManager);
-        const textureLoader = new THREE.TextureLoader(loadingManager);
-
 
         ///////////////////////////////////////////////////////////////////////
         // Function to generate customer
@@ -171,22 +202,6 @@
                     console.error('An error occurred while loading the kitten model:', error);
                 }
             );
-        }
-
-        ///////////////////////////////////////////////////////////////////////
-        // GENERATE NEW PIZZAS
-        ///////////////////////////////////////////////////////////////////////
-        function newPizzas() {
-            pizzasA.forEach(pizza => {
-                if (pizza) sceneElements.sceneGraph.remove(pizza);
-            });
-            pizzasA.length = 0;
-            
-            setTimeout(() => {
-                for (let i = 0; i < 5; i++) {
-                    createPizza(sceneElements.sceneGraph, i, false);
-                }
-            }, 250);
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -340,6 +355,83 @@
                 sceneGraph.add(pizzaGroup);
                 pizzasCustomer[index] = pizzaGroup;
             }
+        }
+
+        ///////////////////////////////////////////////////////////////////////
+        //  CREATE A CAR
+        ///////////////////////////////////////////////////////////////////////
+
+        function createCar(direction) {
+            const carGroup = new THREE.Group();
+
+            // Car body
+            const bodyGeometry = new THREE.BoxGeometry(1.5, 0.5, 1);
+            const bodyMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255, 0, 0)' });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.set(0, 0.25, 0);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            carGroup.add(body);
+
+            const roofGeometry = new THREE.BoxGeometry(0.8, 0.3, 0.8);
+            const roofMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(200, 0, 0)' });
+            const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+            roof.position.set(0, 0.55, 0);
+            roof.castShadow = true;
+            roof.receiveShadow = true;
+            carGroup.add(roof);
+
+            // Wheels
+            const wheelGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.2, 32);
+            const wheelMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(50, 50, 50)' });
+
+            const wheelPositions = [
+                { x: -0.6, y: 0, z: -0.5 },
+                { x: 0.6, y: 0, z: -0.5 },
+                { x: -0.6, y: 0, z: 0.5 },
+                { x: 0.6, y: 0, z: 0.5 },
+            ];
+
+            wheelPositions.forEach((pos) => {
+                const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+                wheel.rotation.x = Math.PI / 2;
+                wheel.position.set(pos.x, pos.y, pos.z);
+                wheel.castShadow = true;
+                wheel.receiveShadow = true;
+                carGroup.add(wheel);
+            });
+
+            // Headlights
+            const headlightGeometry = new THREE.CylinderGeometry(0.1,0.05, 0.2,32);
+            const headlightMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255, 255, 0)' , transparent: true, opacity: 0.8, emissive: 'rgb(255, 255, 0)', emissiveIntensity: 1});
+            const headlight = new THREE.Mesh(headlightGeometry, headlightMaterial);
+            headlight.rotation.z = -Math.PI / 2;
+            const headlightClone = headlight.clone();
+            headlight.position.set(0.7, 0.3, 0.3);
+            headlightClone.position.set(0.7, 0.3, -0.3);
+            carGroup.add(headlight);
+            carGroup.add(headlightClone);
+
+            // Iluminate headlights
+            const headlightSource = new THREE.SpotLight('rgb(255, 255, 0)', 15, 50);
+            headlightSource.castShadow = true;
+            headlightSource.angle = Math.PI / 3.5;
+            headlightSource.decay = 1;
+            headlightSource.position.set(0.3, 0.8, 0.3);
+
+            // Set target
+            const headlightTarget = new THREE.Object3D();
+            headlightTarget.position.set(0.8, 0.8, 0.3);
+            carGroup.add(headlightTarget);
+            headlightSource.target = headlightTarget;
+
+            carGroup.add(headlightSource);
+
+            if (direction === -1) {
+                carGroup.rotation.y = Math.PI;
+            }
+
+            return carGroup;
         }
         
         ///////////////////////////////////////////////////////////////////////
@@ -619,87 +711,24 @@
         };
 
         ///////////////////////////////////////////////////////////////////////
-        //  CREATE A CAR
+        // GENERATE NEW PIZZAS
         ///////////////////////////////////////////////////////////////////////
-
-        function createCar(direction) {
-            const carGroup = new THREE.Group();
-
-            // Car body
-            const bodyGeometry = new THREE.BoxGeometry(1.5, 0.5, 1);
-            const bodyMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255, 0, 0)' });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            body.position.set(0, 0.25, 0);
-            body.castShadow = true;
-            body.receiveShadow = true;
-            carGroup.add(body);
-
-            const roofGeometry = new THREE.BoxGeometry(0.8, 0.3, 0.8);
-            const roofMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(200, 0, 0)' });
-            const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-            roof.position.set(0, 0.55, 0);
-            roof.castShadow = true;
-            roof.receiveShadow = true;
-            carGroup.add(roof);
-
-            // Wheels
-            const wheelGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.2, 32);
-            const wheelMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(50, 50, 50)' });
-
-            const wheelPositions = [
-                { x: -0.6, y: 0, z: -0.5 },
-                { x: 0.6, y: 0, z: -0.5 },
-                { x: -0.6, y: 0, z: 0.5 },
-                { x: 0.6, y: 0, z: 0.5 },
-            ];
-
-            wheelPositions.forEach((pos) => {
-                const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
-                wheel.rotation.x = Math.PI / 2;
-                wheel.position.set(pos.x, pos.y, pos.z);
-                wheel.castShadow = true;
-                wheel.receiveShadow = true;
-                carGroup.add(wheel);
+        function newPizzas() {
+            pizzasA.forEach(pizza => {
+                if (pizza) sceneElements.sceneGraph.remove(pizza);
             });
-
-            // Headlights
-            const headlightGeometry = new THREE.CylinderGeometry(0.1,0.05, 0.2,32);
-            const headlightMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255, 255, 0)' , transparent: true, opacity: 0.8, emissive: 'rgb(255, 255, 0)', emissiveIntensity: 1});
-            const headlight = new THREE.Mesh(headlightGeometry, headlightMaterial);
-            headlight.rotation.z = -Math.PI / 2;
-            const headlightClone = headlight.clone();
-            headlight.position.set(0.7, 0.3, 0.3);
-            headlightClone.position.set(0.7, 0.3, -0.3);
-            carGroup.add(headlight);
-            carGroup.add(headlightClone);
-
-            // Iluminate headlights
-            const headlightSource = new THREE.SpotLight('rgb(255, 255, 0)', 15, 100);
-            headlightSource.castShadow = true;
-            headlightSource.angle = Math.PI / 3.5;
-            headlightSource.penumbra = 0.5;
-            headlightSource.decay = 1;
-            headlightSource.position.set(0.3, 0.8, 0.3);
-
-            // Set target
-            const headlightTarget = new THREE.Object3D();
-            headlightTarget.position.set(0.8, 0.8, 0.3);
-            carGroup.add(headlightTarget);
-            headlightSource.target = headlightTarget;
-
-            carGroup.add(headlightSource);
-
-            if (direction === -1) {
-                carGroup.rotation.y = Math.PI;
-            }
-
-            return carGroup;
+            pizzasA.length = 0;
+            
+            setTimeout(() => {
+                for (let i = 0; i < 5; i++) {
+                    createPizza(sceneElements.sceneGraph, i, false);
+                }
+            }, 250);
         }
 
-        const cars = [];
-        const carLanes = [-14,-12]; // Lanes
-        const carSpeedRange = [10, 14];
-        
+        //////////////////////////////////////////////////////////////////////////
+        // SPAWN CARS ON ROAD
+        //////////////////////////////////////////////////////////////////////////
         function spawnCar() {
             //stop spawing if game ended
             if (gameEnded) return;
@@ -731,13 +760,24 @@
         }, 1000);
 
         ///////////////////////////////////////////////////////////////////////
+        // Animate cars moving
+        ///////////////////////////////////////////////////////////////////////
+        function animateCars(deltaTime) {
+            for (let i = cars.length - 1; i >= 0; i--) {
+                const car = cars[i];
+                car.position.x += car.userData.speed * car.userData.direction * deltaTime;
+
+                if ((car.userData.direction === 1 && car.position.x > 27) ||
+                    (car.userData.direction === -1 && car.position.x < -27)) {
+                    sceneElements.sceneGraph.remove(car);
+                    cars.splice(i, 1);
+                }
+            }
+        }
+
+        ///////////////////////////////////////////////////////////////////////
         // TIMER FUNCTIONALITY
         ///////////////////////////////////////////////////////////////////////
-
-        // Timer variables
-        let startTime;
-        let timerInterval;
-        let elapsedSeconds = 0;
 
         // Function to start the timer
         function startTimer() {
@@ -752,55 +792,9 @@
             }, 1000);
         }
 
-        // Start buttom functionality
-        window.addEventListener('DOMContentLoaded', () => {
-            const startOverlay = document.getElementById('startOverlay');
-            const startButton = document.getElementById('startButton');
-            const elGatito = document.getElementById('ElGatitoPizzeria');
-            const helpMenu = document.getElementById('helpMenu');
-            const dataMenu = document.getElementById('dataMenu');
-            const loadingScreen = document.getElementById('loadingScreen');
-
-            startButton.addEventListener('click', () => {
-                // Hide overlay
-                startOverlay.style.display = 'none';
-                elGatito.style.display = '';
-                helpMenu.style.display = '';
-                dataMenu.style.display = '';
-
-                // Show loading screen
-                loadingScreen.style.display = 'flex';
-                scene.load3DObjects(sceneElements.sceneGraph);
-                
-                // Start game
-                gameStart = true;
-                startTimer();
-            });
-        });
-
         ///////////////////////////////////////////////////////////////////////
-        // ANIMATION
+        // Game logic
         ///////////////////////////////////////////////////////////////////////
-        
-        // variables
-        let kittenSpeed = 10;
-        let keyD = false, keyA = false, keyS = false, keyW = false, keyE = false, keySpace = false;
-        const cameraOffset = new THREE.Vector3(0, 10, 10);
-        let score = 0;
-        let gameStart = false;
-        let heldPizza = null;
-        let heldPizzaBB = null;
-        let lastButtonPress = 0;
-        let gameEnded = false;
-        let lastTime = performance.now();
-        // Bounding boxes
-        let kittenBB, kittenHelper;
-
-
-        // Update score UI
-        function updateScoreUI() {
-            document.getElementById("score").textContent = score;
-        }
 
         // Handle kitten movement
         function handleKittenMovement(deltaTime) {
@@ -834,7 +828,7 @@
             if (kitten) {
                 kittenBB.setFromObject(kitten);
                 kittenBB.expandByScalar(0.2);
-                // kittenHelper.updateMatrixWorld(true); // Only if helper is added to scene
+                // kittenHelper.updateMatrixWorld(true);
             }
 
             if (heldPizza && heldPizzaBB) {
@@ -913,12 +907,32 @@
             }
         }
 
+        // Interaction with reset button
+        function handleButtonInteraction() {
+            const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
+            const button = sceneElements.sceneGraph.getObjectByName("resetButton");
+            if (!kitten || !button || !kittenBB) return;
+
+            const buttonBB = new THREE.Box3().setFromObject(button);
+            buttonBB.expandByScalar(0.2);
+
+            const now = performance.now();
+            if (kittenBB.intersectsBox(buttonBB) && keyE && (now - lastButtonPress > 500)) {
+                newPizzas();
+                lastButtonPress = now;
+            }
+        }
+
+        ///////////////////////////////////////////////////////////////////////
+        // ANIMATION
+        ///////////////////////////////////////////////////////////////////////
+
         // Animate customer leaving the restaurant
         function animateCustomerLeave(customer, index) {
             const startZ = customer.position.z;
             const endZ = -9;
             const duration = 1000;
-            const startTimeAnim = performance.now(); // Renamed to avoid conflict with global startTime
+            const startTimeAnim = performance.now();
             const respawnPosition = customer.position.clone();
 
             function animateWalk(now) {
@@ -953,39 +967,40 @@
             sceneElements.camera.lookAt(kitten.position);
         }
 
-        // Interaction with reset button
-        function handleButtonInteraction() {
-            const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
-            const button = sceneElements.sceneGraph.getObjectByName("resetButton");
-            if (!kitten || !button || !kittenBB) return; // Ensure kittenBB is initialized
-
-            const buttonBB = new THREE.Box3().setFromObject(button);
-            buttonBB.expandByScalar(0.2);
-
-            const now = performance.now();
-            if (kittenBB.intersectsBox(buttonBB) && keyE && (now - lastButtonPress > 500)) {
-                newPizzas();
-                lastButtonPress = now;
-            }
-        }
-
-        // Animate cars moving
-        function animateCars(deltaTime) {
-            for (let i = cars.length - 1; i >= 0; i--) {
-                const car = cars[i];
-                car.position.x += car.userData.speed * car.userData.direction * deltaTime;
-
-                if ((car.userData.direction === 1 && car.position.x > 27) ||
-                    (car.userData.direction === -1 && car.position.x < -27)) {
-                    sceneElements.sceneGraph.remove(car);
-                    cars.splice(i, 1);
-                }
-            }
+        // Update score UI
+        function updateScoreUI() {
+            document.getElementById("score").textContent = score;
         }
 
         ///////////////////////////////////////////////////////////////////////
         // Overlays
         ///////////////////////////////////////////////////////////////////////
+
+        // Start buttom functionality
+        window.addEventListener('DOMContentLoaded', () => {
+            const startOverlay = document.getElementById('startOverlay');
+            const startButton = document.getElementById('startButton');
+            const elGatito = document.getElementById('ElGatitoPizzeria');
+            const helpMenu = document.getElementById('helpMenu');
+            const dataMenu = document.getElementById('dataMenu');
+            const loadingScreen = document.getElementById('loadingScreen');
+
+            startButton.addEventListener('click', () => {
+                // Hide overlay
+                startOverlay.style.display = 'none';
+                elGatito.style.display = '';
+                helpMenu.style.display = '';
+                dataMenu.style.display = '';
+
+                // Show loading screen
+                loadingScreen.style.display = 'flex';
+                scene.load3DObjects(sceneElements.sceneGraph);
+                
+                // Start game
+                gameStart = true;
+                startTimer();
+            });
+        });
 
         // GameOver Overlay
         function showGameOverOverlay() {
@@ -1027,16 +1042,6 @@
                 </div>
             `;
         }
-
-        const hints = [
-            "Hold SpaceBar to pick up pizzas.",
-            "Deliver the right pizza to the right customer.",
-            "Use W, A, S, D to move.",
-            "When close to the bell press E to reset the pizzas.",
-            "Try to deliver pizzas before time runs out! (2 minutes)"
-        ];
-
-        let currentHintIndex = 0;
 
         function showNextHint() {
             const hintMenu = document.getElementById('hintMenu');
@@ -1204,4 +1209,3 @@
 </body>
 
 </html>
---- END OF FILE index.html ---

@@ -30,7 +30,7 @@
         const sceneElements = {
             sceneGraph: null,
             camera: null,
-            control: null,  // NEW
+            control: null,
             renderer: null,
         };
 
@@ -98,6 +98,28 @@
         };
 
         ///////////////////////////////////////////////////////////////////////
+        // Loading Manager
+        ///////////////////////////////////////////////////////////////////////
+        const loadingManager = new THREE.LoadingManager();
+
+        loadingManager.onStart = function () {
+            document.getElementById('loadingScreen').style.display = 'flex';
+            document.getElementById('loadingProgress').textContent = '0%';
+        };
+
+        loadingManager.onLoad = function () {
+            document.getElementById('loadingScreen').style.display = 'none';
+            if (gameStart) {
+                requestAnimationFrame(computeFrame);
+            }
+        };
+
+        loadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {
+            const progress = (itemsLoaded / itemsTotal) * 100;
+            document.getElementById('loadingProgress').textContent = `${Math.round(progress)}%`;
+        };
+
+        ///////////////////////////////////////////////////////////////////////
         // Vaiables
         ///////////////////////////////////////////////////////////////////////
         const customers = [];
@@ -105,9 +127,8 @@
         const pizzasA = [];
         const pizzasCustomer = [];
         let pizzaBB,pizzaHelper;            // Pizza BB
-        const manager = new THREE.LoadingManager();
-        const loader = new GLTFLoader(manager);
-        const textureLoader = new THREE.TextureLoader(manager);
+        const loader = new GLTFLoader(loadingManager);
+        const textureLoader = new THREE.TextureLoader(loadingManager);
 
 
         ///////////////////////////////////////////////////////////////////////
@@ -738,6 +759,7 @@
             const elGatito = document.getElementById('ElGatitoPizzeria');
             const helpMenu = document.getElementById('helpMenu');
             const dataMenu = document.getElementById('dataMenu');
+            const loadingScreen = document.getElementById('loadingScreen');
 
             startButton.addEventListener('click', () => {
                 // Hide overlay
@@ -746,9 +768,13 @@
                 helpMenu.style.display = '';
                 dataMenu.style.display = '';
 
+                // Show loading screen
+                loadingScreen.style.display = 'flex';
+                scene.load3DObjects(sceneElements.sceneGraph);
+                
+                // Start game
                 gameStart = true;
                 startTimer();
-                //init();
             });
         });
 
@@ -808,7 +834,7 @@
             if (kitten) {
                 kittenBB.setFromObject(kitten);
                 kittenBB.expandByScalar(0.2);
-                kittenHelper.updateMatrixWorld(true);
+                // kittenHelper.updateMatrixWorld(true); // Only if helper is added to scene
             }
 
             if (heldPizza && heldPizzaBB) {
@@ -839,7 +865,7 @@
             if (heldPizza && keySpace) {
                 const forward = new THREE.Vector3(1, 0.5, 0).applyQuaternion(kitten.quaternion).normalize();
                 heldPizza.position.copy(kitten.position.clone().add(forward));
-                heldPizzaBB.setFromObject(heldPizza);
+                if (heldPizzaBB) heldPizzaBB.setFromObject(heldPizza); // Update BB if it exists
             }
 
             // Drop pizza
@@ -892,11 +918,11 @@
             const startZ = customer.position.z;
             const endZ = -9;
             const duration = 1000;
-            const startTime = performance.now();
+            const startTimeAnim = performance.now(); // Renamed to avoid conflict with global startTime
             const respawnPosition = customer.position.clone();
 
             function animateWalk(now) {
-                const elapsed = now - startTime;
+                const elapsed = now - startTimeAnim;
                 const t = Math.min(elapsed / duration, 1);
                 customer.position.z = startZ + (endZ - startZ) * t;
 
@@ -931,7 +957,7 @@
         function handleButtonInteraction() {
             const kitten = sceneElements.sceneGraph.getObjectByName("kitten");
             const button = sceneElements.sceneGraph.getObjectByName("resetButton");
-            if (!kitten || !button) return;
+            if (!kitten || !button || !kittenBB) return; // Ensure kittenBB is initialized
 
             const buttonBB = new THREE.Box3().setFromObject(button);
             buttonBB.expandByScalar(0.2);
@@ -1038,9 +1064,8 @@
                 gameEnded = true;
                 clearInterval(timerInterval);
                 showGameOverOverlay();
-                return;
             }
-
+            
             updateScoreUI();
             handleKittenMovement(deltaTime);
             updateBoundingBoxes();
@@ -1051,20 +1076,14 @@
             animateCars(deltaTime);
 
             helper.render(sceneElements);
-            sceneElements.control.update();
+            if (sceneElements.control) sceneElements.control.update();
 
             requestAnimationFrame(computeFrame);
         }
 
-        // Call functions:
-        //  1. Initialize the empty scene
-        //  2. Add elements within the scene
-        //  3. Animate
 
         function init() {
             helper.initEmptyScene(sceneElements);
-            scene.load3DObjects(sceneElements.sceneGraph);
-            requestAnimationFrame(computeFrame);
         }
 
         // HANDLING EVENTS
@@ -1081,13 +1100,13 @@
             const width = window.innerWidth;
             const height = window.innerHeight;
 
-            sceneElements.camera.aspect = width / height;
-            sceneElements.camera.updateProjectionMatrix();
-
-            sceneElements.renderer.setSize(width, height);
-
-            // Comment when doing animation
-            // ComputeFrame(sceneElements);
+            if (sceneElements.camera) {
+                sceneElements.camera.aspect = width / height;
+                sceneElements.camera.updateProjectionMatrix();
+            }
+            if (sceneElements.renderer) {
+                sceneElements.renderer.setSize(width, height);
+            }
         }
 
         function onDocumentKeyDown(event) {
@@ -1131,25 +1150,14 @@
                     break;
                 case 32: //space
                     keySpace = false;
+                    break; // Added missing break
                 case 69: //e
                     keyE = false;
                     break;
             }
         }
 
-        // Show loading overlay
-        manager.onProgress = function (url, itemsLoaded, itemsTotal) {
-            if (loadingProgress) {
-                loadingProgress.textContent = Math.floor((itemsLoaded / itemsTotal) * 100) + "%";
-            }
-        };
-
-        manager.onLoad = function () {
-            if (loadingOverlay) loadingOverlay.style.display = 'none';
-        };
-
         // STARTING
-
         init();
 
     </script>
@@ -1157,6 +1165,11 @@
 </head>
 
 <body>
+    <div id="loadingScreen" style="position: fixed; width: 100vw; height: 100vh; background-color: rgba(30,30,30,0.95); color: white; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 1001; font-size: 2.5em; text-align: center; font-family: 'Times New Roman', serif;">
+        <div>Loading El Gatito Pizzeria...</div>
+        <div id="loadingProgress" style="font-size: 0.8em; margin-top: 20px;">0%</div>
+    </div>
+
     <div id="startOverlay" style="position: fixed; width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: url('textures/background.jpg') center center / cover no-repeat; z-index: 10; padding-top: 50px;">
         <img src="textures/grass.jpg" alt="El Gatito Pizzeria" style="max-width: 80%; max-height: 300px; margin-bottom: 20px; border: 5px solid #503018; border-radius:10px;">
         <h1 style="color: white; font-size: 3em; font-family: 'Times New Roman'; text-shadow: 2px 2px 0 #000,-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000, 0 0 10px #000; text-align: center;">
@@ -1185,12 +1198,10 @@
             <div style="font-size: 1.1em;"><b>Time: </b><span id="timer">0m 0s</span></div>
         </div>
     </div>
-        <div id="hintMenu" style="position: fixed; left: 15px; bottom: 15px; background: rgba(255,255,200,0.92); color: #333; padding: 14px 22px; border-radius: 10px; font-family: Arial, sans-serif; font-size: 1.1em; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 20;">
+    <div id="hintMenu" style="position: fixed; left: 15px; bottom: 15px; background: rgba(255,255,200,0.92); color: #333; padding: 14px 22px; border-radius: 10px; font-family: Arial, sans-serif; font-size: 1.1em; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 20;">
         <b>Hint:</b>
-    </div>
-    <div id="loadingOverlay" style="position: fixed;width: 100vw; height: 100vh;background: rgba(0,0,0,0.85);color: white;font-size: 2em;font-family: Arial, sans-serif;display: flex;align-items: center;justify-content: center;z-index: 10000;">
-        Loading game assets...
     </div>
 </body>
 
 </html>
+--- END OF FILE index.html ---

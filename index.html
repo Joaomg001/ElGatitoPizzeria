@@ -639,7 +639,7 @@
                 grass.receiveShadow = true;
 
                 // Create road plane
-                const roadGeometry = new THREE.BoxGeometry(50,4);
+                const roadGeometry = new THREE.BoxGeometry(70,4);
                 const roadMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(58,58,58)', side: THREE.DoubleSide });
                 const road = new THREE.Mesh(roadGeometry, roadMaterial);
                 sceneGraph.add(road);
@@ -649,7 +649,7 @@
                 road.receiveShadow = true;
                 
                 // Add road stripe
-                const roadstripeGeometry = new THREE.BoxGeometry(50,0.2);
+                const roadstripeGeometry = new THREE.BoxGeometry(70,0.2);
                 const roadstripeMaterial = new THREE.MeshPhongMaterial({ color: 'rgb(255,255,255)', side: THREE.DoubleSide });
                 const roadstripe = new THREE.Mesh(roadstripeGeometry, roadstripeMaterial);
                 const roadstripeL = new THREE.Mesh(roadstripeGeometry, roadstripeMaterial);
@@ -668,7 +668,7 @@
                 sideWalkTexture.wrapS = THREE.RepeatWrapping;
                 sideWalkTexture.wrapT = THREE.RepeatWrapping;
                 sideWalkTexture.repeat.set(10, 1);
-                const sidewalkGeometry = new THREE.BoxGeometry(50,12,0.55);
+                const sidewalkGeometry = new THREE.BoxGeometry(70,12,0.55);
                 const sidewalkMaterial = new THREE.MeshPhongMaterial({ map: sideWalkTexture, side: THREE.DoubleSide });
                 const sidewalk = new THREE.Mesh(sidewalkGeometry, sidewalkMaterial);
                 sceneGraph.add(sidewalk);
@@ -729,60 +729,27 @@
         //////////////////////////////////////////////////////////////////////////
         // SPAWN CARS ON ROAD
         //////////////////////////////////////////////////////////////////////////
-        const carPool = [];
 
-        // Spawn car
-        function spawnCar() {
-            if (gameEnded) return;
-
-            if (cars.length >= 2) return;
-
-            let direction = 0;
-            const lane = carLanes[Math.floor(Math.random() * carLanes.length)];
-
-            if (lane === -14) {
-                direction = 1; // Right to left
-            } else if (lane === -12) {
-                direction = -1; // Left to right
-                
-            }
-
-            let car;
-            if (carPool.length > 0) {
-                car = carPool.pop();
-                car.visible = true;
-            } else {
-                car = createCar(direction);
-            }
-
-            car.position.set(direction === 1 ? -25 : 25, 0.25, lane);
-
-            if (direction === -1) {
-                car.rotation.y = Math.PI;
-            } else {
-                car.rotation.y = 0;
-            }
-            
-            car.userData = {
-                speed: carSpeedRange[0] + Math.random() * (carSpeedRange[1] - carSpeedRange[0]),
-                direction: direction
-            };
-
-            if (!sceneElements.sceneGraph.children.includes(car)) {
+        // Initialize cars
+        function initCars() {
+            for (let i = 0; i < 3; i++) { // pick number of cars
+                const lane = carLanes[i % carLanes.length];
+                const direction = lane === -14 ? 1 : -1;
+                const car = createCar(direction);
+                car.position.set(direction === 1 ? -25 : 25, 0.25, lane);
+                car.rotation.y = direction === -1 ? Math.PI : 0;
+                car.userData = {
+                    speed: carSpeedRange[0] + Math.random() * (carSpeedRange[1] - carSpeedRange[0]),
+                    direction: direction,
+                    lane: lane
+                };
                 sceneElements.sceneGraph.add(car);
+                cars.push(car);
             }
-            cars.push(car);
         }
         
-        // Spawn cars every second
-        setInterval(() => {
-            spawnCar();
-            console.log("Cars on the road: " + cars.length);
-        }, 1000);
-
-        ///////////////////////////////////////////////////////////////////////
-        // Animate cars moving
-        ///////////////////////////////////////////////////////////////////////
+        setTimeout(initCars, 1000);
+        
         // Animate cars on road
         function animateCars(deltaTime) {
             for (let i = 0; i < cars.length; i++) {
@@ -791,15 +758,14 @@
 
                 if ((car.userData.direction === 1 && car.position.x > 27) ||
                     (car.userData.direction === -1 && car.position.x < -27)) {
-                    sceneElements.sceneGraph.remove(car);
-                    car.visible = false;
-                    carPool.push(car);
-                }
-            }
-
-            for (let i = cars.length - 1; i >= 0; i--) {
-                if (!cars[i].visible) {
-                    cars.splice(i, 1);
+                    // Lane and direction
+                    const lane = carLanes[Math.floor(Math.random() * carLanes.length)];
+                    const direction = lane === -14 ? 1 : -1;
+                    car.position.set(direction === 1 ? -25 : 25, 0.25, lane);
+                    car.rotation.y = direction === -1 ? Math.PI : 0;
+                    car.userData.speed = carSpeedRange[0] + Math.random() * (carSpeedRange[1] - carSpeedRange[0]);
+                    car.userData.direction = direction;
+                    car.userData.lane = lane;
                 }
             }
         }

@@ -22,7 +22,6 @@
 
         import * as THREE from "three";
 
-        import { ConvexGeometry } from "three/addons/geometries/ConvexGeometry.js";
         import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
         import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -98,8 +97,18 @@
             },
         };
 
+        ///////////////////////////////////////////////////////////////////////
+        // Vaiables
+        ///////////////////////////////////////////////////////////////////////
         const customers = [];
         const customerColors = ["#a88532", "#a85532", "#000000", "#ffffff", "#253745"];
+        const pizzasA = [];
+        const pizzasCustomer = [];
+        let pizzaBB,pizzaHelper;            // Pizza BB
+        const manager = new THREE.LoadingManager();
+        const loader = new GLTFLoader(manager);
+        const textureLoader = new THREE.TextureLoader(manager);
+
 
         ///////////////////////////////////////////////////////////////////////
         // Function to generate customer
@@ -107,7 +116,6 @@
 
         let belongsToCustomer = false;
         function generateRandomCustomer(sceneGraph, index, position) {
-            const loader = new GLTFLoader();
             loader.load(
                 'Kitten.glb',
                 function (gltf) {
@@ -163,9 +171,6 @@
         ///////////////////////////////////////////////////////////////////////
         // CREATING PIZZAS
         ///////////////////////////////////////////////////////////////////////
-        const pizzasA = [];
-        const pizzasCustomer = [];
-        let pizzaBB,pizzaHelper;            // Pizza BB
         
         function createPizza(sceneGraph,index,belongsToCustomer, position = null) {
             const scale = 0.2;
@@ -184,6 +189,7 @@
                     toppingType = 0;
                     toppingColor = 'rgb(210, 43, 43)';
                     pizzaType = 1;
+                    break;
                 case 2: // Olives
                     toppingFlag = true;
                     toppingType = 0;
@@ -200,7 +206,8 @@
                     toppingFlag = true;
                     toppingType = 1;
                     toppingColor = 'rgb(0,128,0)';
-                    pizzaType = 4;                
+                    pizzaType = 4;
+                    break;           
             }
             
             // Create the pizza base
@@ -294,7 +301,7 @@
                 // ENDS HERE
                 sceneGraph.add(pizzaGroup);
                 pizzasA.push(pizzaGroup);
-            }else if(belongsToCustomer == true){ // Pizzas for customers
+             }else if(belongsToCustomer == true){ // Pizzas for customers
                 if (position) {
                     pizzaGroup.position.copy(position);
                     pizzaGroup.position.y = 0.3;
@@ -302,6 +309,13 @@
                 } else {
                     pizzaGroup.position.set(index*1.5-3, 0.3, -5.2);
                 }
+                // Make all meshes in the pizzaGroup transparent
+                pizzaGroup.traverse(function(node) {
+                    if (node.isMesh) {
+                        node.material.transparent = true;
+                        node.material.opacity = 0.5;
+                    }
+                });
                 sceneGraph.add(pizzaGroup);
                 pizzasCustomer[index] = pizzaGroup;
             }
@@ -321,9 +335,8 @@
                     generateRandomCustomer(sceneGraph,i); // Create customers
                     createPizza(sceneGraph,i,false); // Spawn pizzas 
                 }
-
+                
                 // Spawn player character (kitten)
-                const loader = new GLTFLoader();
                 loader.load(
                     'Kitten.glb',
                     function (gltf) {
@@ -361,7 +374,6 @@
                 //  CREATE RESTAURANT
                 ///////////////////////////////////////////////////////////////////////
                 // Create a texture loader
-                const textureLoader = new THREE.TextureLoader();
 
                 // Create restaurant floor
                 // Create floor
@@ -696,7 +708,7 @@
             spawnCar();
             console.log("Cars on the road: " + cars.length);
         }, 1000);
-                
+
         ///////////////////////////////////////////////////////////////////////
         // TIMER FUNCTIONALITY
         ///////////////////////////////////////////////////////////////////////
@@ -736,6 +748,7 @@
 
                 gameStart = true;
                 startTimer();
+                //init();
             });
         });
 
@@ -1124,6 +1137,17 @@
             }
         }
 
+        // Show loading overlay
+        manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+            if (loadingProgress) {
+                loadingProgress.textContent = Math.floor((itemsLoaded / itemsTotal) * 100) + "%";
+            }
+        };
+
+        manager.onLoad = function () {
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
+        };
+
         // STARTING
 
         init();
@@ -1163,6 +1187,9 @@
     </div>
         <div id="hintMenu" style="position: fixed; left: 15px; bottom: 15px; background: rgba(255,255,200,0.92); color: #333; padding: 14px 22px; border-radius: 10px; font-family: Arial, sans-serif; font-size: 1.1em; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 20;">
         <b>Hint:</b>
+    </div>
+    <div id="loadingOverlay" style="position: fixed;width: 100vw; height: 100vh;background: rgba(0,0,0,0.85);color: white;font-size: 2em;font-family: Arial, sans-serif;display: flex;align-items: center;justify-content: center;z-index: 10000;">
+        Loading game assets...
     </div>
 </body>
 

@@ -729,27 +729,48 @@
         //////////////////////////////////////////////////////////////////////////
         // SPAWN CARS ON ROAD
         //////////////////////////////////////////////////////////////////////////
+        const carPool = [];
+
+        // Spawn car
         function spawnCar() {
-            //stop spawing if game ended
             if (gameEnded) return;
+
+            if (cars.length >= 2) return;
+
             let direction = 0;
-            if (cars.length >= 2) return; 
             const lane = carLanes[Math.floor(Math.random() * carLanes.length)];
-            console.log("Spawning car in lane: " + lane);
-            // Side of road
-            if(lane == -14){ 
-                direction = 1; // Right
-            }else if(lane == -12){
-                direction = -1; // Left
+
+            if (lane === -14) {
+                direction = 1; // Right to left
+            } else if (lane === -12) {
+                direction = -1; // Left to right
+                
             }
-            const car = createCar(direction);
+
+            let car;
+            if (carPool.length > 0) {
+                car = carPool.pop();
+                car.visible = true;
+            } else {
+                car = createCar(direction);
+            }
 
             car.position.set(direction === 1 ? -25 : 25, 0.25, lane);
+
+            if (direction === -1) {
+                car.rotation.y = Math.PI;
+            } else {
+                car.rotation.y = 0;
+            }
+            
             car.userData = {
                 speed: carSpeedRange[0] + Math.random() * (carSpeedRange[1] - carSpeedRange[0]),
                 direction: direction
             };
-            sceneElements.sceneGraph.add(car);
+
+            if (!sceneElements.sceneGraph.children.includes(car)) {
+                sceneElements.sceneGraph.add(car);
+            }
             cars.push(car);
         }
         
@@ -762,14 +783,22 @@
         ///////////////////////////////////////////////////////////////////////
         // Animate cars moving
         ///////////////////////////////////////////////////////////////////////
+        // Animate cars on road
         function animateCars(deltaTime) {
-            for (let i = cars.length - 1; i >= 0; i--) {
+            for (let i = 0; i < cars.length; i++) {
                 const car = cars[i];
                 car.position.x += car.userData.speed * car.userData.direction * deltaTime;
 
                 if ((car.userData.direction === 1 && car.position.x > 27) ||
                     (car.userData.direction === -1 && car.position.x < -27)) {
                     sceneElements.sceneGraph.remove(car);
+                    car.visible = false;
+                    carPool.push(car);
+                }
+            }
+
+            for (let i = cars.length - 1; i >= 0; i--) {
+                if (!cars[i].visible) {
                     cars.splice(i, 1);
                 }
             }

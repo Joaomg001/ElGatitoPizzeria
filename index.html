@@ -67,6 +67,7 @@
         ///////////////////////////////////////////////////////////////////////
         const loader = new GLTFLoader(loadingManager);
         const textureLoader = new THREE.TextureLoader(loadingManager);
+        let  customerGLTF = null;
 
         const customers = [];
         const pizzasA = [];
@@ -175,40 +176,51 @@
 
         let belongsToCustomer = false;
         function generateRandomCustomer(sceneGraph, index, position) {
-            loader.load(
-                'Kitten.glb',
-                function (gltf) {
-                    const customer = gltf.scene;
+        function addCustomerToScene(customer, sceneGraph, index, position, color) {
+            if (position) {
+                customer.position.copy(position);
+                customer.position.z = -5.8;
+            } else {
+                customer.position.set(index * 1.5 - 3, 0.5, -5.8);
+            }
+            customer.scale.set(0.1, 0.1, 0.1);
+            customer.rotation.y = -Math.PI / 2;
 
-                    if (position) {
-                        customer.position.copy(position);
-                        customer.position.z = -5.8;
-                    } else {
-                        customer.position.set(index * 1.5 - 3, 0.5, -5.8);
-                    }
-                    customer.scale.set(0.1, 0.1, 0.1);
-                    customer.rotation.y = -Math.PI / 2;
-
-                    // Pick random color
-                    const randomColor = customerColors[Math.floor(Math.random() * customerColors.length)];
-                    customer.traverse(function (node) {
-                        if (node.isMesh) {
-                            node.castShadow = true;
-                            node.receiveShadow = true;
-                            node.material.color.set(randomColor);
-                        }
-                    });
-
-                    sceneGraph.add(customer);
-                    customers[index] = customer;
-
-                    createPizza(sceneGraph, index, true, customer.position);
-                },
-                undefined,
-                function (error) {
-                    console.error('An error occurred while loading the kitten model:', error);
+            customer.traverse(function (node) {
+                if (node.isMesh) {
+                    node.castShadow = true;
+                    node.receiveShadow = true;
+                    node.material = node.material.clone();
+                    node.material.color.set(color);
                 }
-            );
+            });
+
+            sceneGraph.add(customer);
+            customers[index] = customer;
+
+            createPizza(sceneGraph, index, true, customer.position);
+        }
+            // New random customer color
+            const randomColor = customerColors[Math.floor(Math.random() * customerColors.length)];
+            customers[index + "_color"] = randomColor;
+
+            if (customerGLTF) {
+                // Clone model
+                const customer = customerGLTF.clone(true);
+                addCustomerToScene(customer, sceneGraph, index, position, randomColor);
+            } else {
+                customerLoader.load(
+                    'Kitten.glb',
+                    function (gltf) {
+                        const customer = gltf.scene;
+                        addCustomerToScene(customer, sceneGraph, index, position, randomColor);
+                    },
+                    undefined,
+                    function (error) {
+                        console.error('An error occurred while loading the kitten model:', error);
+                    }
+                );
+            }
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -352,7 +364,7 @@
                 } else {
                     pizzaGroup.position.set(index*1.5-3, 0.3, -5.2);
                 }
-                // Make all meshes in the pizzaGroup transparent
+                // Make meshes transparent
                 pizzaGroup.traverse(function(node) {
                     if (node.isMesh) {
                         node.material.transparent = true;
@@ -1015,8 +1027,8 @@
             const timerText = document.getElementById("timer").textContent;
             overlay.innerHTML = `
                 <div style="background:rgba(30,30,30,0.95);padding:40px 60px;border-radius:20px;box-shadow:0 0 30px #000; display: flex; flex-direction: column; align-items: center;">
-                    <h1 style="margin-bottom: 20px;">All pizzas delivered!!</h1>
-                    <div style="margin-bottom: 15px;">Final Score: <b>${score}</b></div>
+                    <h1 style="margin-bottom: 20px;">Your final score is:</h1>
+                    <div style="margin-bottom: 15px;">Score: <b>${score}</b></div>
                     <div style="margin-bottom: 15px;">Time: <b>${timerText}</b></div>
                     <button onclick="location.reload()" style="margin-top: 30px; font-size: 1.2em; padding: 0.5em 1.5em; border-radius: 10px; cursor: pointer; background-color: #ffc107; border: 2px solid #e0a800; color: #402008; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                         Restart Game
@@ -1071,7 +1083,20 @@
 
         function init() {
             helper.initEmptyScene(sceneElements);
+            // Preload customer model
+            const customerLoader = new GLTFLoader();
+            customerLoader.load(
+                'Kitten.glb',
+                function (gltf) {
+                    customerGLTF = gltf.scene;
+                },
+                undefined,
+                function (error) {
+                    console.error('An error occurred while preloading the customer model:', error);
+                }
+            );
         }
+
 
         // HANDLING EVENTS
 

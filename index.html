@@ -36,7 +36,7 @@
         // Loading Manager
         ///////////////////////////////////////////////////////////////////////
         const loadingManager = new THREE.LoadingManager();
-        let loadingScreenShownOnce = false; // Add this near your other global variables
+        let loadingScreenShownOnce = false;
 
         // Update loadingManager.onStart and onLoad:
         loadingManager.onStart = function () {
@@ -89,6 +89,7 @@
         let heldPizzaBB = null;
         let lastButtonPress = 0;
         let lastTime = performance.now();
+        let timerStarted = false;
 
         let keyD = false, keyA = false, keyS = false, keyW = false, keyE = false, keySpace = false;
 
@@ -826,6 +827,11 @@
 
             const distance = kittenSpeed * deltaTime;
 
+            if (!timerStarted && (keyD || keyW || keyA || keyS)) {
+                startTimer();
+                timerStarted = true;
+            }
+
             if (keyD && kitten.position.x <= 3.5) {
                 kitten.rotation.y = 0;
                 kitten.translateX(distance);
@@ -1001,7 +1007,6 @@
                 
                 // Start game
                 gameStart = true;
-                startTimer();
             });
         });
 

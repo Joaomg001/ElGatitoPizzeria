@@ -90,6 +90,7 @@
         let lastButtonPress = 0;
         let lastTime = performance.now();
         let timerStarted = false;
+        let remainingSeconds = 120;
 
         let keyD = false, keyA = false, keyS = false, keyW = false, keyE = false, keySpace = false;
 
@@ -802,17 +803,27 @@
         ///////////////////////////////////////////////////////////////////////
         // TIMER FUNCTIONALITY
         ///////////////////////////////////////////////////////////////////////
-
         // Function to start the timer
         function startTimer() {
-            startTime = new Date().getTime();
+            let minutes = Math.floor(remainingSeconds / 60);
+            let seconds = remainingSeconds % 60;
+            document.getElementById("timer").innerHTML = minutes + "m " + seconds + "s ";
+
             timerInterval = setInterval(function() {
-                let currentTime = new Date().getTime();
-                let timeDiff = currentTime - startTime;
-                let seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-                let minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-                elapsedSeconds = Math.floor(timeDiff / 1000);
+                remainingSeconds--;
+                let minutes = Math.floor(remainingSeconds / 60);
+                let seconds = remainingSeconds % 60;
                 document.getElementById("timer").innerHTML = minutes + "m " + seconds + "s ";
+                elapsedSeconds = 120 - remainingSeconds;
+
+                if (remainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById("timer").innerHTML = "0m 0s";
+                    if (!gameEnded) {
+                        gameEnded = true;
+                        showGameOverOverlay();
+                    }
+                }
             }, 1000);
         }
 
@@ -1043,7 +1054,6 @@
                 <div style="background:rgba(30,30,30,0.95);padding:40px 60px;border-radius:20px;box-shadow:0 0 30px #000; display: flex; flex-direction: column; align-items: center;">
                     <h1 style="margin-bottom: 20px;">Your final score is:</h1>
                     <div style="margin-bottom: 15px;">Score: <b>${score}</b></div>
-                    <div style="margin-bottom: 15px;">Time: <b>${timerText}</b></div>
                     <button onclick="location.reload()" style="margin-top: 30px; font-size: 1.2em; padding: 0.5em 1.5em; border-radius: 10px; cursor: pointer; background-color: #ffc107; border: 2px solid #e0a800; color: #402008; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                         Restart Game
                     </button>
@@ -1073,7 +1083,7 @@
             deltaTime = Math.min(deltaTime, 0.05);    // cap DeltaTime
             lastTime = time;
 
-            if (!gameEnded && (score >= 500 || elapsedSeconds >= 120)) {
+            if (!gameEnded && (score >= 500 || remainingSeconds <= 0)) {
                 gameEnded = true;
                 clearInterval(timerInterval);
                 showGameOverOverlay();
@@ -1234,7 +1244,7 @@
         <div id="dataTable">
             <div style="margin-bottom: 8px; font-size: 1.8em;"><b>Score: <span id="score">0</span> </b></div>
             <hr style="margin: 8px 0; border-color: rgba(0,0,0,0.1);">
-            <div style="font-size: 1.1em;"><b>Time: </b><span id="timer">0m 0s</span></div>
+            <div style="font-size: 1.1em;"><b>Time: </b><span id="timer">2m 0s</span></div>
         </div>
     </div>
     <div id="hintMenu" style="position: fixed; left: 15px; bottom: 15px; background: rgba(255,255,200,0.92); color: #333; padding: 14px 22px; border-radius: 10px; font-family: Arial, sans-serif; font-size: 1.1em; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 20;">
